@@ -1,0 +1,65 @@
+screensage-lite/
+├── manifest.json
+├── background.js
+├── popup.html
+├── popup.js
+└── style.css   (optional, just to make popup look clean)
+
+
+
+⚡ Scope 1: Tiny MVP (Hackathon-Day-1 Viable)
+
+Goal: Show Chrome’s built-in AI at work in the simplest possible way.
+
+Form: Chrome Extension (popup + background script).
+
+Features:
+
+Track tab usage (time spent per tab/domain).
+
+Daily Digest Card (EOD or button-triggered):
+
+Uses Summarizer API to compress the day’s browsing into categories (“Work: 3 hrs, Social: 1.5 hrs, YouTube: 40 mins”).
+
+Uses Prompt API to generate 1–2 “friendly nudge” suggestions.
+
+Proofreader API (optional): right-click menu option → “Polish my text” for textareas.
+
+Why it works for judges:
+
+Local-only (tab data never leaves device).
+
+Quick to demo in under 3 mins: browse → click extension → instant insights.
+
+Clean, small scope but demonstrates privacy + productivity.
+
+
+
+
+⚡ Scope 2: Polished Hackathon-Ready
+
+Goal: Make ScreenSage Lite feel like a real product (still lightweight).
+
+Core MVP Features (from Scope 1) PLUS:
+
+Customization: user sets 1–2 goals (“less social,” “focus on research”).
+
+Smart Summaries: Summarizer API turns open article into 3-bullet digest on-demand.
+
+Gentle Nudges: Context-aware (e.g., >1 hr on socials triggers a Prompt API tip).
+
+Rewriter API integration: reframe email drafts or notes (“make it shorter,” “make it friendlier”).
+
+Privacy Dashboard: show exactly what’s tracked + option to clear data.
+
+Visual polish:
+
+Popup dashboard: pie chart (time by category) + “Daily Reflection” note.
+
+Emoji-driven insights (✅ Wins, ⚠ Areas to improve, 💡 Advice).
+
+Why it works for judges:
+
+Feels like a full companion app, not just a prototype.
+
+Hits hackathon criteria: local-first, helpful, open-source, clear UX, uses multiple APIs.
