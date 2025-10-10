@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright, expect
 import os
+import re
 
 def run():
     with sync_playwright() as p:
@@ -41,24 +42,40 @@ def run():
         # Navigate to the local popup.html file
         page.goto(f"file://{absolute_path}")
 
-        # Wait for the initial data to load and check the summary text
+        # Wait for the initial data to load
         expect(page.locator("#output")).to_contain_text("Recent activity:")
 
         # The chart should be hidden initially
-        expect(page.locator(".chart-container")).to_be_hidden()
+        expect(page.locator(".chart-container")).to_have_class(re.compile(r"\bhidden\b"))
+
+        # Take a screenshot of the initial compact view
+        page.screenshot(path="jules-scratch/verification/compact_view.png")
+
+        # Use the button's ID as a stable locator
+        show_chart_btn = page.locator("#showChartBtn")
 
         # Click the "Show Chart" button
-        page.get_by_role("button", name="📊 Show Chart").click()
+        show_chart_btn.click()
 
-        # The chart container and the canvas should now be visible
-        expect(page.locator(".chart-container")).to_be_visible()
+        # The chart container should now be visible
+        expect(page.locator(".chart-container")).not_to_have_class(re.compile(r"\bhidden\b"))
         expect(page.locator("#usageChart")).to_be_visible()
 
-        # Wait for the chart animation to complete for a stable screenshot
+        # The button text should update
+        expect(show_chart_btn).to_have_text("🙈 Hide Chart")
+
+        # Wait for the chart animation to complete
         page.wait_for_timeout(1000)
 
-        # Take a screenshot to verify the final state
-        page.screenshot(path="jules-scratch/verification/verification.png")
+        # Take a screenshot of the expanded view
+        page.screenshot(path="jules-scratch/verification/expanded_view.png")
+
+        # Click the "Hide Chart" button
+        show_chart_btn.click()
+
+        # The chart should be hidden again
+        expect(page.locator(".chart-container")).to_have_class(re.compile(r"\bhidden\b"))
+        expect(show_chart_btn).to_have_text("📊 Show Chart")
 
         browser.close()
 

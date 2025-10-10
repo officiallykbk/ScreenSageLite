@@ -14,9 +14,13 @@ function loadRecentData() {
     const usageData = items.usage || items.totalUsage || {};
     const domains = Object.entries(usageData);
     
+    const chartContainer = document.querySelector('.chart-container');
+    if (chartContainer) {
+        chartContainer.classList.add('hidden');
+    }
+
     if (domains.length === 0) {
       document.getElementById("output").innerText = "No browsing data collected yet.\nStart browsing to see your habits!";
-      hideChart();
     } else {
       const topDomains = domains
         .sort((a, b) => b[1] - a[1])
@@ -24,7 +28,6 @@ function loadRecentData() {
         .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(1)} min`)
         .join("\n");
       document.getElementById("output").innerText = `Recent activity:\n${topDomains}`;
-      hideChart(); // Initially hide the chart
     }
   });
 }
@@ -33,51 +36,49 @@ function loadRecentData() {
  * Set up all event listeners
  */
 function setupEventListeners() {
-  document.getElementById("showChartBtn").addEventListener("click", showUsageChart);
+  document.getElementById("showChartBtn").addEventListener("click", toggleUsageChart);
   document.getElementById("resetBtn").addEventListener("click", resetData);
   document.getElementById("exportBtn").addEventListener("click", exportData);
 }
 
 /**
- * Show the usage chart
+ * Toggles the visibility of the usage chart
  */
-function showUsageChart() {
-  chrome.storage.local.get(['usage', 'totalUsage'], (items) => {
-    if (chrome.runtime.lastError) {
-      console.error('Storage error:', chrome.runtime.lastError);
-      return;
-    }
-    const usageData = items.usage || items.totalUsage || {};
-    const domains = Object.entries(usageData);
-
-    if (domains.length === 0) {
-      return; // Don't show chart if no data
-    }
-
-    // Sort by time spent (descending) and take top 10
-    domains.sort((a, b) => b[1] - a[1]);
-    const topDomains = domains.slice(0, 10);
-    const labels = topDomains.map(([domain]) => truncateDomain(domain));
-    const values = topDomains.map(([_, ms]) => (ms / 60000).toFixed(1));
-
-    // Show chart container and render chart
-    const chartContainer = document.querySelector('.chart-container');
-    if (chartContainer) {
-      chartContainer.style.display = 'block';
-    }
-    renderChart(labels, values);
-  });
-}
-
-/**
- * Hide the chart container
- */
-function hideChart() {
+function toggleUsageChart() {
   const chartContainer = document.querySelector('.chart-container');
-  if (chartContainer) {
-    chartContainer.style.display = 'none';
+  const showChartBtn = document.getElementById('showChartBtn');
+  if (!chartContainer) return;
+
+  const isHidden = chartContainer.classList.contains('hidden');
+
+  if (isHidden) {
+    chrome.storage.local.get(['usage', 'totalUsage'], (items) => {
+      if (chrome.runtime.lastError) {
+        console.error('Storage error:', chrome.runtime.lastError);
+        return;
+      }
+      const usageData = items.usage || items.totalUsage || {};
+      const domains = Object.entries(usageData);
+
+      if (domains.length === 0) {
+        return; // Don't show chart if no data
+      }
+
+      domains.sort((a, b) => b[1] - a[1]);
+      const topDomains = domains.slice(0, 10);
+      const labels = topDomains.map(([domain]) => truncateDomain(domain));
+      const values = topDomains.map(([_, ms]) => (ms / 60000).toFixed(1));
+
+      chartContainer.classList.remove('hidden');
+      renderChart(labels, values);
+      showChartBtn.textContent = '🙈 Hide Chart';
+    });
+  } else {
+    chartContainer.classList.add('hidden');
+    showChartBtn.textContent = '📊 Show Chart';
   }
 }
+
 
 /**
  * Reset all stored data
@@ -102,7 +103,14 @@ function resetData() {
         chartInstance.destroy();
         chartInstance = null;
       }
-      hideChart();
+      const chartContainer = document.querySelector('.chart-container');
+      if (chartContainer) {
+        chartContainer.classList.add('hidden');
+      }
+      const showChartBtn = document.getElementById('showChartBtn');
+      if(showChartBtn) {
+        showChartBtn.textContent = '📊 Show Chart';
+      }
     }
     
     setTimeout(() => {

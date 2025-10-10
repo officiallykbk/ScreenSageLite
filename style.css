@@ -73,7 +73,6 @@ button:hover {
   padding: 10px;
   background: white;
   border-radius: 8px;
-  min-height: 80px;
   font-size: 14px;
   white-space: pre-line; /* preserve line breaks */
 }
