@@ -29,7 +29,10 @@ function isTrackableUrl(url) {
     if (scheme === 'chrome:' || scheme === 'chrome-extension:' || scheme === 'moz-extension:' || scheme === 'edge:') return false;
     if (scheme === 'file:') return false;
     if (scheme === 'about:') return false;
-    return u.hostname && u.hostname.includes('.') && !u.hostname.endsWith('.local');
+    // Allow common dev and intranet hosts
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+    // Track normal web hosts and intranet hosts (including .local)
+    return !!u.hostname;
   } catch (e) {
     return false;
   }
@@ -239,6 +242,11 @@ chrome.runtime.onInstalled.addListener(async () => {
     title: "Polish with ScreenSage",
     contexts: ["selection"]
   });
+  chrome.contextMenus.create({
+    id: "rewriteText",
+    title: "Rewrite with ScreenSage",
+    contexts: ["selection"]
+  });
   // Setup cleanup alarm and migrate legacy data
   try {
     await migrateLegacyToUsage();
@@ -246,26 +254,31 @@ chrome.runtime.onInstalled.addListener(async () => {
     // already logged
   }
   chrome.alarms.create('screensage-cleanup', { periodInMinutes: 24 * 60 });
+  chrome.alarms.create('screensage-save-tick', { periodInMinutes: 1 });
 });
 
 chrome.runtime.onStartup.addListener(() => {
   chrome.alarms.create('screensage-cleanup', { periodInMinutes: 24 * 60 });
+  chrome.alarms.create('screensage-save-tick', { periodInMinutes: 1 });
 });
 
 // Handle context menu click
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === "proofreadText" && info.selectionText) {
+  if ((info.menuItemId === "proofreadText" || info.menuItemId === "rewriteText") && info.selectionText) {
     try {
-      const result = await chrome.ai.proofreader.correct({
-        input: info.selectionText
-      });
+      let output = info.selectionText;
+      if (chrome.ai?.proofreader) {
+        const result = await chrome.ai.proofreader.correct({ input: info.selectionText });
+        output = result.output;
+      }
 
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        func: (text) => {
-          alert("✅ Proofread Text:\n\n" + text);
+        func: (text, kind) => {
+          const title = kind === 'rewriteText' ? '✍️ Rewritten Text' : '✅ Proofread Text';
+          alert(title + ":\n\n" + text);
         },
-        args: [result.output]
+        args: [output, info.menuItemId]
       });
     } catch (err) {
       console.error("Proofreader API error:", err);
@@ -282,5 +295,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm && alarm.name === 'screensage-cleanup') {
     void cleanupOldData();
+    return;
+  }
+  if (alarm && alarm.name === 'screensage-save-tick') {
+    void flushSave();
+    return;
   }
 });

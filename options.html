@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScreenSage Lite - Settings</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      width: 400px;
+      max-width: 100%;
+    }
+    
+    .settings-section {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    
+    .settings-section h2 {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+      color: #4f46e5;
+    }
+    
+    .goal-input {
+      margin-bottom: 15px;
+    }
+    
+    .goal-input label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #374151;
+    }
+    
+    .goal-input input {
+      width: 100%;
+      padding: 8px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .goal-input input:focus {
+      outline: none;
+      border-color: #4f46e5;
+    }
+    
+    .goal-input .help-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 3px;
+    }
+    
+    .save-button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 10px;
+    }
+    
+    .save-button:hover {
+      background: #3730a3;
+    }
+    
+    .save-button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    
+    .status-message {
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
+    }
+    
+    .status-success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .status-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🦉 ScreenSage Lite Settings</h1>
+    
+    <div class="settings-section">
+      <h2>🎯 Daily Goals</h2>
+      <p style="margin: 0 0 15px 0; color: #6b7280; font-size: 14px;">
+        Set your daily browsing goals to get personalized insights and tips.
+      </p>
+      
+      <div class="goal-input">
+        <label for="socialLimit">Social Media Limit (minutes)</label>
+        <input type="number" id="socialLimit" min="0" max="480" placeholder="e.g., 30">
+        <div class="help-text">Maximum time to spend on social media sites</div>
+      </div>
+      
+      <div class="goal-input">
+        <label for="workMinimum">Work/Research Minimum (minutes)</label>
+        <input type="number" id="workMinimum" min="0" max="480" placeholder="e.g., 60">
+        <div class="help-text">Minimum time to spend on productive sites</div>
+      </div>
+      
+      <button id="saveGoals" class="save-button">💾 Save Goals</button>
+      <div id="statusMessage" class="status-message" style="display: none;"></div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>📊 Data Management</h2>
+      <button id="exportData" style="width: 100%; margin-bottom: 10px;">📁 Export Data</button>
+      <button id="resetData" style="width: 100%; background: #dc2626;">🗑️ Reset All Data</button>
+    </div>
+
+    <div class="settings-section">
+      <h2>🔒 Privacy</h2>
+      <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">All data stays on your device in chrome.storage.local. No servers, no tracking.</p>
+      <button id="viewKeys" style="width: 100%;">🔍 View Stored Keys</button>
+      <pre id="keysOutput" style="display:none; margin-top:10px; background:#f3f4f6; padding:10px; border-radius:6px; max-height:150px; overflow:auto;"></pre>
+    </div>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>

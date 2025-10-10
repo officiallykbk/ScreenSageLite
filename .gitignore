@@ -1,0 +1,26 @@
+
+---
+
+## 🔹 `.gitignore`
+Add a `.gitignore` for neatness:
+
+
+---
+
+## 🔹 `LICENSE` (MIT)
+Create a `LICENSE` file:
+
+System files
+
+.DS_Store
+Thumbs.db
+
+Logs
+
+*.log
+
+Node modules 
+
+node_modules/
+
+.env
