@@ -42,20 +42,24 @@ def run():
         # Navigate to the local popup.html file
         page.goto(f"file://{absolute_path}")
 
-        # Wait for the initial data to load
+        # Wait for the initial data to load and the fade-in animation
         expect(page.locator("#output")).to_contain_text("Recent activity:")
+        page.wait_for_timeout(500) # Wait for fade-in
 
         # The chart should be hidden initially
         expect(page.locator(".chart-container")).to_have_class(re.compile(r"\bhidden\b"))
 
         # Take a screenshot of the initial compact view
-        page.screenshot(path="jules-scratch/verification/compact_view.png")
+        page.screenshot(path="jules-scratch/verification/compact_view_animated.png")
 
         # Use the button's ID as a stable locator
         show_chart_btn = page.locator("#showChartBtn")
 
         # Click the "Show Chart" button
         show_chart_btn.click()
+
+        # Wait for the expand animation to complete
+        page.wait_for_timeout(500)
 
         # The chart container should now be visible
         expect(page.locator(".chart-container")).not_to_have_class(re.compile(r"\bhidden\b"))
@@ -64,14 +68,14 @@ def run():
         # The button text should update
         expect(show_chart_btn).to_have_text("🙈 Hide Chart")
 
-        # Wait for the chart animation to complete
-        page.wait_for_timeout(1000)
-
         # Take a screenshot of the expanded view
-        page.screenshot(path="jules-scratch/verification/expanded_view.png")
+        page.screenshot(path="jules-scratch/verification/expanded_view_animated.png")
 
         # Click the "Hide Chart" button
         show_chart_btn.click()
+
+        # Wait for the collapse animation
+        page.wait_for_timeout(500)
 
         # The chart should be hidden again
         expect(page.locator(".chart-container")).to_have_class(re.compile(r"\bhidden\b"))

@@ -1,196 +1,122 @@
+@import url('https://rsms.me/inter/inter.css');
+
 :root {
-  --popup-height: auto;
+  --font-sans: 'Inter', sans-serif;
+  --bg: #f8f9fa;
+  --fg: #212529;
+  --border: #dee2e6;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --text-on-primary: #ffffff;
 }
 
-#output:empty,
-#output:only-child:has(span:empty) {
-  display: none;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
   margin: 0;
-  padding: 10px;
-  width: 300px;
-  max-height: 80vh;
-  overflow-y: auto;
-  background: #f7f8fb;
-  color: #222;
-  transition: height 0.3s ease;
+  padding: 16px;
+  width: 320px;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 .container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  position: relative;
-  min-height: 0;
+  gap: 12px;
+  animation: fadeIn 0.3s ease-out;
 }
 
 h1 {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 600;
   text-align: center;
-  margin: 0;
-}
-
-.tabs {
-  display: flex;
-  gap: 6px;
-  margin: 8px 0 4px 0;
-}
-.tab {
-  flex: 1 1 0;
-  background: #eef2ff;
-  color: #3730a3;
-  border: none;
-  padding: 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.tab.active {
-  background: #4f46e5;
-  color: #fff;
-}
-
-button {
-  background: #4f46e5;
-  color: white;
-  border: none;
-  padding: 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.2s ease-in-out;
-}
-
-button:hover {
-  background: #3730a3;
-}
-
-#output {
-  padding: 10px;
-  background: white;
-  border-radius: 8px;
-  font-size: 14px;
-  white-space: pre-line; /* preserve line breaks */
-}
-
-.card {
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  padding: 10px;
-  background: #fff;
-  border-radius: 8px;
-  opacity: 1;
-  transition: opacity 0.2s ease-in-out;
-}
-
-canvas {
-  margin-top: 10px;
-}
-
-/* Chart container styling */
-.chart-container {
-  position: relative;
-  height: 200px;
-  width: 100%;
-  margin: 10px 0;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  padding: 10px;
-  transition: all 0.3s ease;
-}
-/* Sections */
-.section h2 {
-  font-size: 14px;
   margin: 0 0 8px 0;
 }
 
-/* Skeleton loaders */
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background: #e5e7eb;
-  border-radius: 6px;
-}
-.skeleton::after {
-  content: "";
-  position: absolute;
-  top: 0; left: -150px; height: 100%; width: 150px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-  animation: shimmer 1.2s infinite;
-}
-@keyframes shimmer {
-  0% { left: -150px; }
-  100% { left: 100%; }
-}
-.skeleton-text { height: 48px; }
-
-/* Spinner */
-.spinner {
-  width: 20px; height: 20px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #4f46e5;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Error card */
-.error {
-  border: 1px solid #fecaca;
-  background: #fff1f2;
-  color: #991b1b;
-}
-
-/* Hidden chart container */
-.chart-container.hidden {
-  height: 0;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  box-shadow: none;
-}
-
-/* Button states */
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: #9ca3af;
-}
-
-button:disabled:hover {
-  background: #9ca3af;
-}
-
-/* Loading state */
-.loading {
-  opacity: 0.7;
-}
-
-/* Button layout */
 button {
   width: 100%;
-  margin-bottom: 5px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  font-family: var(--font-sans);
 }
 
-/* Responsive adjustments */
-@media (max-width: 320px) {
+button:active {
+  transform: scale(0.98);
+}
+
+#showChartBtn {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  border-color: var(--primary);
+}
+#showChartBtn:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+#resetBtn, #exportBtn {
+  background: transparent;
+  color: var(--fg);
+}
+#resetBtn:hover, #exportBtn:hover {
+  background: #e9ecef;
+  border-color: #ced4da;
+}
+
+.card, #output, .chart-container {
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+#output {
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+.chart-container {
+  padding: 16px;
+  max-height: 300px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s ease,
+              padding 0.3s ease,
+              border 0.3s ease;
+}
+
+.chart-container.hidden {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  border: none;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button:disabled:hover {
+  background: revert;
+  border-color: revert;
+}
+
+@supports (font-variation-settings: normal) {
   body {
-    width: 280px;
-  }
-  
-  .chart-container {
-    height: 180px;
-  }
-  
-  canvas {
-    width: 260px;
-    height: 180px;
+    font-family: 'Inter var', sans-serif;
   }
 }
