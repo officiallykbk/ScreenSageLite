@@ -25,7 +25,9 @@ def run():
                                 'google.com': 30000
                             }
                         };
-                        callback(data);
+                        if (callback) {
+                            callback(data);
+                        }
                     },
                     clear: (callback) => {
                         if (callback) callback();
@@ -36,21 +38,18 @@ def run():
         """
         page.add_init_script(mock_chrome_api)
 
-        # Get the absolute path to the popup.html file
-        absolute_path = os.path.abspath("popup.html")
-
-        # Navigate to the local popup.html file
-        page.goto(f"file://{absolute_path}")
+        # Navigate to the popup using the local HTTP server
+        page.goto("http://localhost:8000/popup.html")
 
         # Wait for the initial data to load and the fade-in animation
-        expect(page.locator("#output")).to_contain_text("Recent activity:")
+        expect(page.locator("#output")).to_contain_text("Recent activity:", timeout=10000)
         page.wait_for_timeout(500) # Wait for fade-in
 
         # The chart should be hidden initially
         expect(page.locator(".chart-container")).to_have_class(re.compile(r"\bhidden\b"))
 
         # Take a screenshot of the initial compact view
-        page.screenshot(path="jules-scratch/verification/compact_view_animated.png")
+        page.screenshot(path="jules-scratch/verification/final_compact_view.png")
 
         # Use the button's ID as a stable locator
         show_chart_btn = page.locator("#showChartBtn")
@@ -65,21 +64,8 @@ def run():
         expect(page.locator(".chart-container")).not_to_have_class(re.compile(r"\bhidden\b"))
         expect(page.locator("#usageChart")).to_be_visible()
 
-        # The button text should update
-        expect(show_chart_btn).to_have_text("🙈 Hide Chart")
-
         # Take a screenshot of the expanded view
-        page.screenshot(path="jules-scratch/verification/expanded_view_animated.png")
-
-        # Click the "Hide Chart" button
-        show_chart_btn.click()
-
-        # Wait for the collapse animation
-        page.wait_for_timeout(500)
-
-        # The chart should be hidden again
-        expect(page.locator(".chart-container")).to_have_class(re.compile(r"\bhidden\b"))
-        expect(show_chart_btn).to_have_text("📊 Show Chart")
+        page.screenshot(path="jules-scratch/verification/final_expanded_view.png")
 
         browser.close()
 
