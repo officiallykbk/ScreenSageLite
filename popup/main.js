@@ -1,16 +1,9 @@
-import { loadInitialData, setupEventListeners } from './ui.js';
+alert("loading main.js");
+import { loadRecentData, setupEventListeners } from './ui.js';
+import { updateStreakDisplay } from './streak.js';
 
-/**
- * Initializes the popup application.
- */
-function main() {
-    // Make sure the DOM is fully loaded before interacting with it.
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', main);
-    } else {
-        loadInitialData();
-        setupEventListeners();
-    }
-}
-
-main();
+document.addEventListener('DOMContentLoaded', async () => {
+  setupEventListeners();
+  await loadRecentData();
+  updateStreakDisplay();
+});

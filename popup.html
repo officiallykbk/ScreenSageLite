@@ -10,9 +10,23 @@
   <body>
     <div class="container">
       <h1>🦉 ScreenSage Lite</h1>
-      <button id="showChartBtn">📊 Show Chart</button>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+        <button class="tab" data-tab="reflection" role="tab" aria-selected="false">Reflection</button>
+        <button class="tab" data-tab="goals" role="tab" aria-selected="false">Goals</button>
+      </div>
+      <button id="digestBtn">✨ Get Daily Digest</button>
+      <button id="summarizeBtn">📰 Summarize This Page</button>
       <button id="resetBtn">🗑️ Reset Data</button>
       <button id="exportBtn">Export Data</button>
+      <div id="reflection" class="card section" data-section="reflection" style="display:none;">
+        <h2>📊 Daily Reflection</h2>
+        <div id="reflectionContent" class="skeleton skeleton-text"></div>
+      </div>
+      <div id="goals" class="card section" data-section="goals" style="display:none;">
+        <h2>🎯 Goal Feedback</h2>
+        <div id="goalsContent" class="skeleton skeleton-text"></div>
+      </div>
       <div id="errorCard" class="card section error" style="display:none;"></div>
       <div id="output" class="card" data-section="overview" style="display:block;"></div>
       <div class="chart-container" data-section="overview">
