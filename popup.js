@@ -39,9 +39,9 @@ function loadRecentData() {
       .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(1)} min`)
       .join("\n");
 
-    document.getElementById("output").innerText = 
+    document.getElementById("output").innerText =
       `Recent activity:\n${topDomains}\n\nClick "Generate Digest" for full analysis!`;
-    
+
     // Show chart container when data is available
     const chartContainer = document.querySelector('.chart-container');
     if (chartContainer) {
@@ -61,13 +61,13 @@ function setupEventListeners() {
   }
   document.getElementById("resetBtn").addEventListener("click", resetData);
   document.getElementById("exportBtn").addEventListener("click", exportData);
-  
+
   // Debug: Show all storage on popup open
   chrome.storage.local.get(null, (allItems) => {
     console.log('All storage keys:', Object.keys(allItems));
     console.log('All storage data:', allItems);
   });
-  
+
   // Add settings button
   addSettingsButton();
 }
@@ -137,7 +137,7 @@ async function generateDigest() {
   isGenerating = true;
   const digestBtn = document.getElementById("digestBtn");
   const originalText = digestBtn.textContent;
-  
+
   try {
     // Show loading state
     digestBtn.textContent = "⏳ Consulting the owl…";
@@ -212,7 +212,7 @@ async function generateDigest() {
         showErrorCard(null);
         updateSection('reflectionContent', formatted);
         updateSection('goalsContent', buildGoalsFeedback());
-        
+
       } catch (aiError) {
         console.error("AI analysis failed:", aiError);
         // Fallback to manual analysis
@@ -294,25 +294,25 @@ async function generateAIAnalysis(summaryText) {
       });
     });
 
-    const goalsContext = goals.socialLimit || goals.workMinimum ? 
+    const goalsContext = goals.socialLimit || goals.workMinimum ?
       `\n\nUser Goals:\n${goals.socialLimit ? `- Social media limit: ${goals.socialLimit} minutes\n` : ''}${goals.workMinimum ? `- Work/research minimum: ${goals.workMinimum} minutes\n` : ''}` : '';
 
     const [summary, tip] = await Promise.all([
       chrome.ai.summarizer.summarize({
         input: `Here is my browsing activity for today:\n${summaryText}${goalsContext}\n
-        Please provide a brief, insightful summary (2-3 sentences) of my browsing habits. 
+        Please provide a brief, insightful summary (2-3 sentences) of my browsing habits.
         Focus on patterns, productivity, and balance. Be constructive and non-judgmental.
         If goals are set, compare actual usage against those goals.`
       }),
       chrome.ai.prompt.generate({
         input: `Based on this browsing data:\n${summaryText}${goalsContext}\n
-        Generate one short, practical tip (1 sentence) to improve digital wellbeing or productivity tomorrow. 
+        Generate one short, practical tip (1 sentence) to improve digital wellbeing or productivity tomorrow.
         Make it supportive and actionable. If goals are set, reference them in your tip.`
       })
     ]);
 
     return formatAIResponse(summary.output, tip.output, goals);
-    
+
   } catch (aiError) {
     throw new Error(`AI service error: ${aiError.message}`);
   }
@@ -323,7 +323,7 @@ async function generateAIAnalysis(summaryText) {
  */
 function formatAIResponse(summary, tip, goals) {
   let response = `📊 Daily Browsing Summary:\n${summary}\n\n`;
-  
+
   // Add goal-specific feedback if goals are set
   if (goals.socialLimit || goals.workMinimum) {
     response += `🎯 Goal Check:\n`;
@@ -335,9 +335,9 @@ function formatAIResponse(summary, tip, goals) {
     }
     response += `\n`;
   }
-  
+
   response += `💡 Tomorrow's Tip:\n${tip}`;
-  
+
   return response;
 }
 
@@ -565,7 +565,7 @@ function updateStreakDisplay() {
   chrome.storage.local.get(['streakData'], (result) => {
     const streakData = result.streakData || { current: 0, lastActive: null };
     const today = new Date().toDateString();
-    
+
     if (streakData.lastActive === today) {
       currentStreak = streakData.current;
     } else {
@@ -573,13 +573,13 @@ function updateStreakDisplay() {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toDateString();
-      
+
       if (streakData.lastActive === yesterdayStr) {
         currentStreak = streakData.current + 1;
       } else {
         currentStreak = 1; // Reset streak
       }
-      
+
       // Update streak data
       chrome.storage.local.set({
         streakData: {
@@ -588,7 +588,7 @@ function updateStreakDisplay() {
         }
       });
     }
-    
+
     // Add streak indicator to popup if streak > 0
     if (currentStreak > 0) {
       addStreakIndicator();
@@ -602,11 +602,11 @@ function updateStreakDisplay() {
 function addStreakIndicator() {
   const container = document.querySelector('.container');
   const existingStreak = document.getElementById('streakIndicator');
-  
+
   if (existingStreak) {
     existingStreak.remove();
   }
-  
+
   if (currentStreak > 0) {
     const streakEl = document.createElement('div');
     streakEl.id = 'streakIndicator';
@@ -622,7 +622,7 @@ function addStreakIndicator() {
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     `;
     streakEl.textContent = `🔥 ${currentStreak}-day productivity streak!`;
-    
+
     // Insert after h1
     const h1 = container.querySelector('h1');
     h1.insertAdjacentElement('afterend', streakEl);
@@ -635,11 +635,11 @@ function addStreakIndicator() {
 function addSettingsButton() {
   const container = document.querySelector('.container');
   const existingSettings = document.getElementById('settingsBtn');
-  
+
   if (existingSettings) {
     existingSettings.remove();
   }
-  
+
   const settingsBtn = document.createElement('button');
   settingsBtn.id = 'settingsBtn';
   settingsBtn.textContent = '⚙️ Settings';
@@ -656,11 +656,11 @@ function addSettingsButton() {
     right: 10px;
     z-index: 1000;
   `;
-  
+
   settingsBtn.addEventListener('click', () => {
     chrome.runtime.openOptionsPage();
   });
-  
+
   container.style.position = 'relative';
   container.appendChild(settingsBtn);
 }
@@ -674,12 +674,12 @@ style.textContent = `
     width: 100%;
     margin: 10px 0;
   }
-  
+
   button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
-  
+
   .loading {
     opacity: 0.7;
   }
