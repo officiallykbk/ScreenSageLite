@@ -15,7 +15,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "popup/popup.html",
     "default_title": "ScreenSage Lite",
     "default_icon": {
       "16": "favicon.png",
@@ -26,7 +26,7 @@
   "options_page": "options.html",
   "web_accessible_resources": [
     {
-      "resources": ["chart.min.js", "chart.umd.min.js"],
+      "resources": ["chart.min.js", "chart.umd.min.js", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ]

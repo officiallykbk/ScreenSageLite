@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ScreenSage Lite</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="popup.css" />
+    <script src="/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <img src="/assets/logo.png" alt="ScreenSage Logo" class="logo">
+            <div class="header-title">
+                <h1>ScreenSage Lite</h1>
+                <p>Your Digital Wellness Companion</p>
+            </div>
+            <button id="settingsBtn" class="icon-btn" title="Settings">
+                <img src="/assets/icons/settings.svg" alt="Settings">
+            </button>
+        </header>
+
+        <main class="main-content">
+            <div class="stats-card card">
+                <div class="stats-header">
+                    <h2>Today's Overview</h2>
+                    <div id="streakIndicator" class="streak-indicator">🔥 0-day streak</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="usageChart"></canvas>
+                </div>
+                <div id="quick-summary" class="quick-summary">
+                    <!-- Top domains will be injected here -->
+                </div>
+            </div>
+
+            <div class="actions-grid">
+                <button id="digestBtn" class="action-btn card">
+                    <img src="/assets/icons/digest.svg" alt="Digest Icon" class="btn-icon">
+                    <span>Get Daily Digest</span>
+                </button>
+                <button id="summarizeBtn" class="action-btn card">
+                     <img src="/assets/icons/summarize.svg" alt="Summarize Icon" class="btn-icon">
+                    <span>Summarize Page</span>
+                </button>
+            </div>
+
+            <div id="reflection-card" class="card reflection-card" style="display: none;">
+                <h2>📊 Daily Reflection</h2>
+                <div id="reflectionContent" class="skeleton"></div>
+            </div>
+
+            <div id="errorCard" class="card error-card" style="display:none;"></div>
+        </main>
+
+        <footer class="footer">
+            <button id="resetBtn" class="footer-btn">
+                <img src="/assets/icons/reset.svg" alt="Reset Icon">
+                <span>Reset Data</span>
+            </button>
+            <button id="exportBtn" class="footer-btn">
+                <img src="/assets/icons/export.svg" alt="Export Icon">
+                <span>Export Data</span>
+            </button>
+        </footer>
+    </div>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
