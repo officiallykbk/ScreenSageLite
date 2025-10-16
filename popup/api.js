@@ -4,10 +4,16 @@ export async function summarizePage() {
 
     const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        func: () => ({
-            text: document.body.innerText.trim().slice(0, 15000),
-            title: document.title
-        })
+        func: () => {
+            const getReadableText = () => {
+                const article = document.querySelector('article');
+                const main = document.querySelector('main');
+                const body = document.body;
+                const node = article || main || body;
+                return node?.innerText?.trim()?.replace(/\s+/g, ' ').slice(0, 20000) || '';
+            };
+            return { text: getReadableText(), title: document.title };
+        }
     });
 
     if (!result?.text) {
@@ -20,7 +26,7 @@ export async function summarizePage() {
     }
 
     const summary = await chrome.ai.summarizer.summarize({
-        input: `Summarize the following content from "${result.title}":\n\n${result.text}`
+        input: `Summarize the following content from "${result.title}" in 3 concise bullet points:\n\n${result.text}`
     });
 
     return summary.output;

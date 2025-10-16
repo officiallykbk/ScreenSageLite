@@ -95,11 +95,13 @@ export function showError(message) {
     const errorCard = document.getElementById('errorCard');
     errorCard.textContent = message;
     errorCard.style.display = 'block';
+    setTimeout(() => errorCard.style.opacity = 1, 10);
 }
 
 export function hideError() {
     const errorCard = document.getElementById('errorCard');
-    errorCard.style.display = 'none';
+    errorCard.style.opacity = 0;
+    setTimeout(() => errorCard.style.display = 'none', 300);
 }
 
 export function updateReflection(content) {
@@ -109,6 +111,7 @@ export function updateReflection(content) {
     reflectionContent.innerHTML = content;
     reflectionCard.style.display = 'block';
     showLoadingState(false);
+    setTimeout(() => reflectionCard.style.opacity = 1, 10);
 }
 
 export function updateQuickSummary(usageData) {
