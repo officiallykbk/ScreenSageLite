@@ -26,7 +26,7 @@
   "options_page": "options.html",
   "web_accessible_resources": [
     {
-      "resources": ["chart.min.js", "chart.umd.min.js", "assets/*"],
+      "resources": ["chart.min.js", "chart.umd.min.js", "assets/logo.png"],
       "matches": ["<all_urls>"]
     }
   ]
