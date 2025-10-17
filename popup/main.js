@@ -7,17 +7,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     hideError();
 
     // Load initial data and render UI
-    const { usage, streakData } = await getStoredData(['usage', 'streakData']);
-    const usageData = usage || {};
+    try {
+        const { usage, streakData } = await getStoredData(['usage', 'streakData']);
+        const usageData = usage || {};
 
-    updateQuickSummary(usageData);
-    updateStreakDisplay(streakData || { current: 0, lastActive: null });
+        updateQuickSummary(usageData);
+        updateStreakDisplay(streakData || { current: 0, lastActive: null });
 
-    const topDomains = Object.entries(usageData).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    if (topDomains.length > 0) {
-        const labels = topDomains.map(([domain]) => domain);
-        const values = topDomains.map(([, ms]) => (ms / 60000).toFixed(1));
-        renderChart(labels, values);
+        const topDomains = Object.entries(usageData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        if (topDomains.length > 0) {
+            const labels = topDomains.map(([domain]) => domain);
+            const values = topDomains.map(([, ms]) => (ms / 60000).toFixed(1));
+            renderChart(labels, values);
+        }
+    } catch (error) {
+        console.error("Initialization Error:", error);
+        showError("Could not load initial data.");
     }
 
     // Setup event listeners
@@ -49,7 +54,6 @@ async function handleDigest() {
     } finally {
         digestBtn.disabled = false;
         digestBtn.querySelector('span').textContent = 'Get Daily Digest';
-        showLoadingState(false);
     }
 }
 
@@ -69,7 +73,6 @@ async function handleSummarize() {
     } finally {
         summarizeBtn.disabled = false;
         summarizeBtn.querySelector('span').textContent = 'Summarize Page';
-        showLoadingState(false);
     }
 }
 

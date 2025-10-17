@@ -264,32 +264,48 @@ chrome.runtime.onStartup.addListener(() => {
 
 // Handle context menu click
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if ((info.menuItemId === "proofreadText" || info.menuItemId === "rewriteText") && info.selectionText) {
-    try {
-      let output = info.selectionText;
-      if (chrome.ai?.proofreader) {
-        const result = await chrome.ai.proofreader.correct({ input: info.selectionText });
-        output = result.output;
-      }
-
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: (text, kind) => {
-          const title = kind === 'rewriteText' ? '✍️ Rewritten Text' : '✅ Proofread Text';
-          alert(title + ":\n\n" + text);
-        },
-        args: [output, info.menuItemId]
-      });
-    } catch (err) {
-      console.error("Proofreader API error:", err);
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          alert("⚠️ Couldn’t reach Proofreader API.");
-        }
-      });
+    if (!info.selectionText || !chrome.ai) {
+        return;
     }
-  }
+
+    let resultText = '';
+    let alertTitle = '';
+    let errorMsg = "⚠️ Could not perform AI action.";
+
+    try {
+        if (info.menuItemId === "proofreadText") {
+            alertTitle = '✅ Proofread Text';
+            errorMsg = "⚠️ Couldn’t reach Proofreader API.";
+            if (!chrome.ai.proofreader) throw new Error("Proofreader API not available");
+            const result = await chrome.ai.proofreader.correct({ input: info.selectionText });
+            resultText = result.output;
+
+        } else if (info.menuItemId === "rewriteText") {
+            alertTitle = '✍️ Rewritten Text';
+            errorMsg = "⚠️ Couldn’t reach Prompt API.";
+            if (!chrome.ai.prompt) throw new Error("Prompt API not available");
+            const result = await chrome.ai.prompt.generate({
+                input: `Rewrite the following text to be clearer and more concise, while retaining the original meaning:\n\n"${info.selectionText}"`
+            });
+            resultText = result.output;
+        }
+
+        chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: (text, title) => {
+                alert(title + ":\n\n" + text);
+            },
+            args: [resultText, alertTitle]
+        });
+
+    } catch (err) {
+        console.error("Context Menu AI Error:", err);
+        chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: (msg) => alert(msg),
+            args: [errorMsg]
+        });
+    }
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
