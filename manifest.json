@@ -9,7 +9,8 @@
     "contextMenus",
     "scripting",
     "activeTab",
-    "alarms"
+    "alarms",
+    "downloads"
   ],
   "background": {
     "service_worker": "background.js"
@@ -26,7 +27,7 @@
   "options_page": "options.html",
   "web_accessible_resources": [
     {
-      "resources": ["chart.min.js", "chart.umd.min.js", "assets/*"],
+      "resources": ["chart.min.js", "chart.umd.min.js", "assets/logo.png"],
       "matches": ["<all_urls>"]
     }
   ]

@@ -78,9 +78,10 @@ body {
     color: var(--icon-color);
 }
 
-.icon-btn img {
+.icon-btn svg {
     width: 20px;
     height: 20px;
+    stroke: var(--icon-color);
 }
 
 /* Main Content */
@@ -187,7 +188,7 @@ body {
     width: 24px;
     height: 24px;
     margin-bottom: 6px;
-    color: var(--icon-color);
+    stroke: var(--icon-color);
 }
 
 .reflection-card, .error-card {
@@ -231,11 +232,11 @@ body {
     color: var(--text-primary);
 }
 
-.footer-btn img {
+.footer-btn svg {
     width: 14px;
     height: 14px;
     margin-right: 5px;
-    color: var(--icon-color);
+    stroke: var(--icon-color);
 }
 
 /* Skeleton Loader */
