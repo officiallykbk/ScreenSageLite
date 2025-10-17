@@ -1,6 +1,7 @@
-import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary } from './ui.js';
+import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals } from './ui.js';
 import { getStoredData } from './data.js';
 import { summarizePage, generateDigest, resetData, exportData } from './api.js';
+import { checkGoals } from './goals.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Initial UI setup
@@ -24,6 +25,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Initialization Error:", error);
         showError("Could not load initial data.");
     }
+
+    // Check and render goals
+    const goalResults = await checkGoals();
+    renderGoals(goalResults);
 
     // Setup event listeners
     document.getElementById('digestBtn').addEventListener('click', handleDigest);
