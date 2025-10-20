@@ -1,4 +1,4 @@
-import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot } from './ui.js';
+import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme } from './ui.js';
 import { getStoredData } from './data.js';
 import { summarizePage, generateDigest, resetData, exportData } from './api.js';
 import { checkGoals } from './goals.js';
@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial UI setup
     hideError();
     loadOwlMascot();
+    initTheme();
 
     // Load initial data and render UI
     try {
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup event listeners
     addButtonRippleEffect();
+    addCardParallaxEffect();
     document.getElementById('digestBtn').addEventListener('click', handleDigest);
     document.getElementById('summarizeBtn').addEventListener('click', handleSummarize);
     document.getElementById('resetBtn').addEventListener('click', handleReset);

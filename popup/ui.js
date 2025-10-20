@@ -185,6 +185,40 @@ export function addButtonRippleEffect() {
     });
 }
 
+export function initTheme() {
+    chrome.storage.local.get('theme', ({ theme }) => {
+        if (theme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    });
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+        chrome.storage.local.set({ theme });
+    });
+}
+
+export function addCardParallaxEffect() {
+    const container = document.querySelector('.container');
+    const cards = document.querySelectorAll('.card');
+
+    container.addEventListener('mousemove', (e) => {
+        const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
+        const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
+
+        cards.forEach(card => {
+            card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+        });
+    });
+
+    container.addEventListener('mouseleave', () => {
+        cards.forEach(card => {
+            card.style.transform = `rotateY(0deg) rotateX(0deg)`;
+        });
+    });
+}
+
 export function loadOwlMascot() {
     const owlMascot = document.getElementById('owl-mascot');
     if (owlMascot) {

@@ -36,6 +36,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100%;
+    perspective: 1000px;
 }
 
 /* Header */

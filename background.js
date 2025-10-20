@@ -255,11 +255,19 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
   chrome.alarms.create('screensage-cleanup', { periodInMinutes: 24 * 60 });
   chrome.alarms.create('screensage-save-tick', { periodInMinutes: 1 });
+  chrome.alarms.create('screensage-reflection-notification', {
+    when: new Date().setHours(20, 0, 0, 0),
+    periodInMinutes: 24 * 60
+  });
 });
 
 chrome.runtime.onStartup.addListener(() => {
   chrome.alarms.create('screensage-cleanup', { periodInMinutes: 24 * 60 });
   chrome.alarms.create('screensage-save-tick', { periodInMinutes: 1 });
+  chrome.alarms.create('screensage-reflection-notification', {
+    when: new Date().setHours(20, 0, 0, 0),
+    periodInMinutes: 24 * 60
+  });
 });
 
 // Handle context menu click
@@ -315,6 +323,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
   if (alarm && alarm.name === 'screensage-save-tick') {
     void flushSave();
+    return;
+  }
+  if (alarm && alarm.name === 'screensage-reflection-notification') {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'assets/logo.png',
+      title: 'Daily Reflection',
+      message: 'Time to reflect on your day with ScreenSage Lite!'
+    });
     return;
   }
 });
