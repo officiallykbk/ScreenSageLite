@@ -235,6 +235,24 @@ chrome.runtime.onSuspend.addListener(() => {
   void flushSave();
 });
 
+function scheduleDailyReflectionNotification() {
+  const now = new Date();
+  const next8PM = new Date();
+
+  next8PM.setHours(20, 0, 0, 0); // Set to 8 PM today
+
+  // If 8 PM today has already passed, set it for 8 PM tomorrow
+  if (now.getTime() > next8PM.getTime()) {
+    next8PM.setDate(next8PM.getDate() + 1);
+  }
+
+  chrome.alarms.create('screensage-reflection-notification', {
+    when: next8PM.getTime(),
+    periodInMinutes: 24 * 60 // 24 hours
+  });
+  log('Scheduled daily reflection notification for', new Date(next8PM.getTime()));
+}
+
 // Create context menu on install
 chrome.runtime.onInstalled.addListener(async () => {
   chrome.contextMenus.create({
@@ -255,19 +273,13 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
   chrome.alarms.create('screensage-cleanup', { periodInMinutes: 24 * 60 });
   chrome.alarms.create('screensage-save-tick', { periodInMinutes: 1 });
-  chrome.alarms.create('screensage-reflection-notification', {
-    when: new Date().setHours(20, 0, 0, 0),
-    periodInMinutes: 24 * 60
-  });
+  scheduleDailyReflectionNotification();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   chrome.alarms.create('screensage-cleanup', { periodInMinutes: 24 * 60 });
   chrome.alarms.create('screensage-save-tick', { periodInMinutes: 1 });
-  chrome.alarms.create('screensage-reflection-notification', {
-    when: new Date().setHours(20, 0, 0, 0),
-    periodInMinutes: 24 * 60
-  });
+  scheduleDailyReflectionNotification();
 });
 
 // Handle context menu click
