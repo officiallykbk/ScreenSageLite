@@ -5,9 +5,9 @@
  * API calls, and goal management.
  */
 
-import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme } from './ui.js';
+import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges } from './ui.js';
 import { getStoredData } from './data.js';
-import { summarizePage, generateDigest, resetData, exportData } from './api.js';
+import { summarizePage, generateDigest, resetData, exportData, generateNudges } from './api.js';
 import { checkGoals } from './goals.js';
 
 /**
@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const values = topDomains.map(([, ms]) => (ms / 60000).toFixed(1));
             renderChart(labels, values);
         }
+
     } catch (error) {
         console.error("Initialization Error:", error);
         showError("Could not load initial data.");
@@ -64,7 +65,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('summarizeBtn').addEventListener('click', handleSummarize);
     document.getElementById('resetBtn').addEventListener('click', handleReset);
     document.getElementById('exportBtn').addEventListener('click', handleExport);
-    document.getElementById('settingsBtn').addEventListener('click', () => chrome.runtime.openOptionsPage());
 });
 
 // --- ACTION HANDLERS ---
@@ -86,8 +86,15 @@ async function handleDigest() {
             updateReflection('No browsing data to analyze yet.');
             return;
         }
-        const digest = await generateDigest(usage);
+        // Generate both the digest and nudges in parallel for a faster response.
+        const [digest, nudges] = await Promise.all([
+            generateDigest(usage),
+            generateNudges(usage)
+        ]);
+
         updateReflection(digest);
+        updateNudges(nudges);
+
     } catch (error) {
         console.error('Digest Error:', error);
         showError(`Could not generate digest: ${error.message}`);

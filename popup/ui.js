@@ -114,6 +114,21 @@ export function updateReflection(content) {
     setTimeout(() => reflectionCard.style.opacity = 1, 10);
 }
 
+export function updateNudges(content) {
+    const nudgesCard = document.getElementById('nudges-card');
+    const nudgesContent = document.getElementById('nudgesContent');
+
+    if (!content || !nudgesCard || !nudgesContent) return;
+
+    // The AI may return nudges separated by newlines, so we format them into a list.
+    const formattedContent = content.split('\n').map(nudge => `<div>${nudge}</div>`).join('');
+
+    nudgesContent.innerHTML = formattedContent;
+    nudgesCard.style.display = 'block';
+    nudgesContent.classList.remove('skeleton'); // Ensure skeleton is removed
+    setTimeout(() => nudgesCard.style.opacity = 1, 10);
+}
+
 export function updateQuickSummary(usageData) {
     const quickSummary = document.getElementById('quick-summary');
     if (!quickSummary) return;

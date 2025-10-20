@@ -35,12 +35,14 @@ export async function summarizePage() {
 import { getStoredData } from './data.js';
 
 export async function generateDigest(usageData) {
-    if (!chrome.ai || !chrome.ai.prompt) {
-        throw new Error("Chrome AI not available. Cannot generate digest.");
+    // Per the feature description, use the Summarizer API for the daily digest.
+    if (!chrome.ai || !chrome.ai.summarizer) {
+        throw new Error("Chrome AI Summarizer not available. Cannot generate digest.");
     }
 
     const { userGoals } = await getStoredData(['userGoals']);
 
+    // Construct a detailed text block with browsing data and user goals for the summarizer.
     let goalContext = '';
     if (userGoals) {
         goalContext += "\nMy personal goals are:\n";
@@ -56,7 +58,23 @@ export async function generateDigest(usageData) {
         .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(0)} min`)
         .join('\n');
 
-    const prompt = `Analyze my browsing data and provide a short, insightful summary (2-3 sentences) and one actionable tip for digital wellness. Be encouraging and non-judgmental. If I have set goals, please comment on how I did. Data:\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}${goalContext}`;
+    // Create a clear input string for the summarizer, providing context and instructions.
+    const inputText = `Summarize the following browsing data into a concise, insightful summary (e.g., "Work: 3 hrs, Social: 1.5 hrs"). Be encouraging and non-judgmental. If personal goals are set, comment on the progress.\n\n---BEGIN DATA---\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}${goalContext}\n---END DATA---`;
+
+    const result = await chrome.ai.summarizer.summarize({ input: inputText });
+    return result.output;
+}
+
+export async function generateNudges(usageData) {
+    if (!chrome.ai || !chrome.ai.prompt) {
+        throw new Error("Chrome AI Prompt API not available. Cannot generate nudges.");
+    }
+
+    const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
+    const topDomain = Object.keys(usageData).length > 0 ? Object.entries(usageData).sort((a, b) => b[1] - a[1])[0][0] : 'none';
+
+    // The prompt is carefully crafted to be gentle, encouraging, and actionable.
+    const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms. For example: "Consider setting a timer on your top site," or "A short walk might be refreshing."`;
 
     const result = await chrome.ai.prompt.generate({ input: prompt });
     return result.output;
