@@ -1,4 +1,4 @@
-import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals } from './ui.js';
+import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot } from './ui.js';
 import { getStoredData } from './data.js';
 import { summarizePage, generateDigest, resetData, exportData } from './api.js';
 import { checkGoals } from './goals.js';
@@ -6,6 +6,7 @@ import { checkGoals } from './goals.js';
 document.addEventListener('DOMContentLoaded', async () => {
     // Initial UI setup
     hideError();
+    loadOwlMascot();
 
     // Load initial data and render UI
     try {
@@ -28,9 +29,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Check and render goals
     const goalResults = await checkGoals();
+    if (goalResults && goalResults.some(goal => goal.achieved)) {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+    }
     renderGoals(goalResults);
 
     // Setup event listeners
+    addButtonRippleEffect();
     document.getElementById('digestBtn').addEventListener('click', handleDigest);
     document.getElementById('summarizeBtn').addEventListener('click', handleSummarize);
     document.getElementById('resetBtn').addEventListener('click', handleReset);
@@ -92,6 +101,11 @@ async function handleReset() {
         renderChart([], []);
         updateStreakDisplay({ current: 0, lastActive: null });
         updateReflection('Data has been reset.');
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
     } catch (error) {
         console.error('Reset Error:', error);
         showError('Failed to reset data.');

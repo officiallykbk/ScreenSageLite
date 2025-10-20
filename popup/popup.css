@@ -82,6 +82,12 @@ body {
     width: 20px;
     height: 20px;
     stroke: var(--icon-color);
+    transition: stroke 0.2s, filter 0.2s;
+}
+
+.icon-btn:hover svg {
+    stroke: var(--text-primary);
+    filter: drop-shadow(0 0 3px rgba(45, 55, 72, 0.3));
 }
 
 /* Main Content */
@@ -177,11 +183,14 @@ body {
     border-radius: 14px;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
 }
 
 .action-btn:hover {
     background-color: rgba(255, 255, 255, 0.6);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .btn-icon {
@@ -278,6 +287,7 @@ body {
 
 .footer-btn:hover {
     color: var(--text-primary);
+    text-shadow: 0 0 8px rgba(45, 55, 72, 0.3);
 }
 
 .footer-btn svg {
@@ -308,4 +318,49 @@ body {
     height: 1.2em;
     border-radius: 4px;
     margin-bottom: 0.8em;
+}
+
+#owl-mascot svg {
+    width: 36px;
+    height: 36px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+#owl-mascot circle:nth-of-type(3),
+#owl-mascot circle:nth-of-type(4) {
+    animation: blink 4s infinite;
+}
+
+@keyframes blink {
+    0%, 90%, 100% {
+        transform: scaleY(1);
+    }
+    95% {
+        transform: scaleY(0.1);
+    }
+}
+
+/* Ripple Effect */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.7);
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
 }

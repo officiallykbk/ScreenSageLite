@@ -158,3 +158,40 @@ export function renderGoals(goalResults) {
         `;
     }).join('');
 }
+
+export function addButtonRippleEffect() {
+    const buttons = document.querySelectorAll('.action-btn, .footer-btn, .icon-btn');
+
+    buttons.forEach(button => {
+        button.addEventListener('click', function (e) {
+            const rect = button.getBoundingClientRect();
+            const ripple = document.createElement('span');
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+
+            ripple.style.width = ripple.style.height = `${diameter}px`;
+            ripple.style.left = `${e.clientX - rect.left - radius}px`;
+            ripple.style.top = `${e.clientY - rect.top - radius}px`;
+            ripple.classList.add('ripple');
+
+            // Remove existing ripples
+            const existingRipple = button.querySelector('.ripple');
+            if (existingRipple) {
+                existingRipple.remove();
+            }
+
+            button.appendChild(ripple);
+        });
+    });
+}
+
+export function loadOwlMascot() {
+    const owlMascot = document.getElementById('owl-mascot');
+    if (owlMascot) {
+        fetch('/owl.svg')
+            .then(response => response.text())
+            .then(svg => {
+                owlMascot.innerHTML = svg;
+            });
+    }
+}
