@@ -203,9 +203,57 @@ body {
     font-weight: 500;
 }
 
-.reflection-card h2 {
+.reflection-card h2, .goals-card h2 {
     font-size: 1rem;
     margin-top: 0;
+}
+
+.goal-item {
+    margin-bottom: 12px;
+}
+
+.goal-item:last-child {
+    margin-bottom: 0;
+}
+
+.goal-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+}
+
+.goal-name {
+    font-weight: 600;
+}
+
+.goal-progress-text {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-inner {
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 4px;
+    transition: width 0.5s ease-out;
+}
+
+.progress-bar-inner.achieved {
+    background-color: #48bb78; /* Green */
+}
+
+.progress-bar-inner.missed {
+    background-color: #f56565; /* Red */
 }
 
 /* Footer */

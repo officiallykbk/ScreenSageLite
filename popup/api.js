@@ -32,9 +32,21 @@ export async function summarizePage() {
     return summary.output;
 }
 
+import { getStoredData } from './data.js';
+
 export async function generateDigest(usageData) {
     if (!chrome.ai || !chrome.ai.prompt) {
         throw new Error("Chrome AI not available. Cannot generate digest.");
+    }
+
+    const { userGoals } = await getStoredData(['userGoals']);
+
+    let goalContext = '';
+    if (userGoals) {
+        goalContext += "\nMy personal goals are:\n";
+        if (userGoals.socialLimit) goalContext += `- Limit social media to ${userGoals.socialLimit} minutes.\n`;
+        if (userGoals.videoLimit) goalContext += `- Limit video to ${userGoals.videoLimit} minutes.\n`;
+        if (userGoals.workMinimum) goalContext += `- Spend at least ${userGoals.workMinimum} minutes on productivity.\n`;
     }
 
     const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
@@ -44,7 +56,7 @@ export async function generateDigest(usageData) {
         .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(0)} min`)
         .join('\n');
 
-    const prompt = `Analyze my browsing data and provide a short, insightful summary (2-3 sentences) and one actionable tip for digital wellness. Be encouraging and non-judgmental. Data:\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}`;
+    const prompt = `Analyze my browsing data and provide a short, insightful summary (2-3 sentences) and one actionable tip for digital wellness. Be encouraging and non-judgmental. If I have set goals, please comment on how I did. Data:\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}${goalContext}`;
 
     const result = await chrome.ai.prompt.generate({ input: prompt });
     return result.output;

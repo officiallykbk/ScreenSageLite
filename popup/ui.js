@@ -130,3 +130,31 @@ export function updateQuickSummary(usageData) {
         quickSummary.innerHTML = 'No data yet. Start browsing!';
     }
 }
+
+export function renderGoals(goalResults) {
+    const goalsCard = document.getElementById('goals-card');
+    const goalsContent = document.getElementById('goals-content');
+
+    if (!goalResults || goalResults.length === 0) {
+        goalsCard.style.display = 'none';
+        return;
+    }
+
+    goalsCard.style.display = 'block';
+    goalsContent.innerHTML = goalResults.map(goal => {
+        const percentage = Math.min((goal.spent / goal.goal) * 100, 100);
+        const statusClass = goal.achieved ? 'achieved' : 'missed';
+
+        return `
+            <div class="goal-item">
+                <div class="goal-info">
+                    <span class="goal-name">${goal.achieved ? '✅' : '⚠️'} ${goal.name}</span>
+                    <span class="goal-progress-text">${goal.spent} / ${goal.goal} min</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-bar-inner ${statusClass}" style="width: ${percentage}%;"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
