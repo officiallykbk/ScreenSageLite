@@ -114,6 +114,21 @@ export function updateReflection(content) {
     setTimeout(() => reflectionCard.style.opacity = 1, 10);
 }
 
+export function updateNudges(content) {
+    const nudgesCard = document.getElementById('nudges-card');
+    const nudgesContent = document.getElementById('nudgesContent');
+
+    if (!content || !nudgesCard || !nudgesContent) return;
+
+    // The AI may return nudges separated by newlines, so we format them into a list.
+    const formattedContent = content.split('\n').map(nudge => `<div>${nudge}</div>`).join('');
+
+    nudgesContent.innerHTML = formattedContent;
+    nudgesCard.style.display = 'block';
+    nudgesContent.classList.remove('skeleton'); // Ensure skeleton is removed
+    setTimeout(() => nudgesCard.style.opacity = 1, 10);
+}
+
 export function updateQuickSummary(usageData) {
     const quickSummary = document.getElementById('quick-summary');
     if (!quickSummary) return;
@@ -157,4 +172,75 @@ export function renderGoals(goalResults) {
             </div>
         `;
     }).join('');
+}
+
+export function addButtonRippleEffect() {
+    const buttons = document.querySelectorAll('.action-btn, .footer-btn, .icon-btn');
+
+    buttons.forEach(button => {
+        button.addEventListener('click', function (e) {
+            const rect = button.getBoundingClientRect();
+            const ripple = document.createElement('span');
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+
+            ripple.style.width = ripple.style.height = `${diameter}px`;
+            ripple.style.left = `${e.clientX - rect.left - radius}px`;
+            ripple.style.top = `${e.clientY - rect.top - radius}px`;
+            ripple.classList.add('ripple');
+
+            // Remove existing ripples
+            const existingRipple = button.querySelector('.ripple');
+            if (existingRipple) {
+                existingRipple.remove();
+            }
+
+            button.appendChild(ripple);
+        });
+    });
+}
+
+export function initTheme() {
+    chrome.storage.local.get('theme', ({ theme }) => {
+        if (theme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    });
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+        chrome.storage.local.set({ theme });
+    });
+}
+
+export function addCardParallaxEffect() {
+    const container = document.querySelector('.container');
+    const cards = document.querySelectorAll('.card');
+
+    container.addEventListener('mousemove', (e) => {
+        const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
+        const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
+
+        cards.forEach(card => {
+            card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+        });
+    });
+
+    container.addEventListener('mouseleave', () => {
+        cards.forEach(card => {
+            card.style.transform = `rotateY(0deg) rotateX(0deg)`;
+        });
+    });
+}
+
+export function loadOwlMascot() {
+    const owlMascot = document.getElementById('owl-mascot');
+    if (owlMascot) {
+        fetch('/owl.svg')
+            .then(response => response.text())
+            .then(svg => {
+                owlMascot.innerHTML = svg;
+            });
+    }
 }

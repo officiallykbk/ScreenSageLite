@@ -1,13 +1,30 @@
-import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals } from './ui.js';
+/**
+ * @file main.js
+ * @description This is the main entry point for the popup UI. It orchestrates the loading of data,
+ * rendering of the UI, and handling of user interactions. It ties together modules for UI, data,
+ * API calls, and goal management.
+ */
+
+import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges } from './ui.js';
 import { getStoredData } from './data.js';
-import { summarizePage, generateDigest, resetData, exportData } from './api.js';
+import { summarizePage, generateDigest, resetData, exportData, generateNudges } from './api.js';
 import { checkGoals } from './goals.js';
 
+/**
+ * @description Main function that runs when the popup DOM is fully loaded.
+ * It initializes the UI, fetches initial data, renders the chart and other components,
+ * and sets up all necessary event listeners for user actions.
+ */
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initial UI setup
+    // --- 1. INITIAL UI SETUP ---
+    // Hide any previous error messages, load the animated owl mascot, and apply the saved theme (dark/light).
     hideError();
+    loadOwlMascot();
+    initTheme();
 
-    // Load initial data and render UI
+    // --- 2. LOAD INITIAL DATA & RENDER ---
+    // Fetch stored usage and streak data, then update the UI components like the summary,
+    // streak counter, and the main chart.
     try {
         const { usage, streakData } = await getStoredData(['usage', 'streakData']);
         const usageData = usage || {};
@@ -21,23 +38,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             const values = topDomains.map(([, ms]) => (ms / 60000).toFixed(1));
             renderChart(labels, values);
         }
+
     } catch (error) {
         console.error("Initialization Error:", error);
         showError("Could not load initial data.");
     }
 
-    // Check and render goals
+    // --- 3. CHECK & RENDER GOALS ---
+    // Evaluate user-defined goals against the browsing data and render their status.
+    // A confetti effect is triggered if any goals have been achieved.
     const goalResults = await checkGoals();
+    if (goalResults && goalResults.some(goal => goal.achieved)) {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+    }
     renderGoals(goalResults);
 
-    // Setup event listeners
+    // --- 4. SETUP EVENT LISTENERS ---
+    // Attach listeners to all interactive elements in the popup, such as buttons and cards.
+    addButtonRippleEffect();
+    addCardParallaxEffect();
     document.getElementById('digestBtn').addEventListener('click', handleDigest);
     document.getElementById('summarizeBtn').addEventListener('click', handleSummarize);
     document.getElementById('resetBtn').addEventListener('click', handleReset);
     document.getElementById('exportBtn').addEventListener('click', handleExport);
-    document.getElementById('settingsBtn').addEventListener('click', () => chrome.runtime.openOptionsPage());
 });
 
+// --- ACTION HANDLERS ---
+
+/**
+ * @description Handles the 'Get Daily Digest' button click. It fetches browsing data,
+ * requests a digest from the API, and displays it in the reflection area.
+ */
 async function handleDigest() {
     const digestBtn = document.getElementById('digestBtn');
     digestBtn.disabled = true;
@@ -51,8 +86,15 @@ async function handleDigest() {
             updateReflection('No browsing data to analyze yet.');
             return;
         }
-        const digest = await generateDigest(usage);
+        // Generate both the digest and nudges in parallel for a faster response.
+        const [digest, nudges] = await Promise.all([
+            generateDigest(usage),
+            generateNudges(usage)
+        ]);
+
         updateReflection(digest);
+        updateNudges(nudges);
+
     } catch (error) {
         console.error('Digest Error:', error);
         showError(`Could not generate digest: ${error.message}`);
@@ -62,6 +104,10 @@ async function handleDigest() {
     }
 }
 
+/**
+ * @description Handles the 'Summarize Page' button click. It calls the API to summarize the
+ * content of the current page and displays the summary in the reflection area.
+ */
 async function handleSummarize() {
     const summarizeBtn = document.getElementById('summarizeBtn');
     summarizeBtn.disabled = true;
@@ -81,6 +127,10 @@ async function handleSummarize() {
     }
 }
 
+/**
+ * @description Handles the 'Reset Data' button click. It prompts the user for confirmation,
+ * then calls the API to clear all stored browsing data and resets the UI.
+ */
 async function handleReset() {
     if (!confirm('Are you sure you want to reset all your browsing data? This cannot be undone.')) {
         return;
@@ -92,12 +142,21 @@ async function handleReset() {
         renderChart([], []);
         updateStreakDisplay({ current: 0, lastActive: null });
         updateReflection('Data has been reset.');
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
     } catch (error) {
         console.error('Reset Error:', error);
         showError('Failed to reset data.');
     }
 }
 
+/**
+ * @description Handles the 'Export Data' button click. It calls the API to export
+ * the user's browsing data to a downloadable file.
+ */
 async function handleExport() {
     try {
         await exportData();

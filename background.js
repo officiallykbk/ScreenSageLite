@@ -1,25 +1,52 @@
 /**
- * Track active tab and domain information
+ * @file background.js
+ * @description This script runs in the background of the Chrome extension, handling core functionalities
+ * such as tracking browsing activity, managing data storage, and setting up alarms and context menus.
+ * It is the central nervous system of ScreenSage Lite.
+ */
+
+// --- GLOBAL STATE ---
+/**
+ * @description Tracks the currently active tab to monitor browsing sessions.
  */
 let activeTabId = null;
+/**
+ * @description Stores the domain of the currently active tab.
+ */
 let activeDomain = null;
+/**
+ * @description Timestamp for when the current browsing session started.
+ */
 let startTime = null;
+/**
+ * @description Flag to check if the browser window is currently focused.
+ */
 let isWindowFocused = true;
+/**
+ * @description Timer for debouncing session saves to avoid excessive writes to storage.
+ */
 let debounceTimer = null;
 
-const DEBUG = true; // Set to false to disable verbose logging
-const DEBOUNCE_MS = 1500;
-const MAX_SESSION_MS = 24 * 60 * 60 * 1000;
-const CLEANUP_DAYS = 30; // remove entries not seen in this many days
+// --- CONSTANTS ---
+const DEBUG = false; // Set to false to disable verbose logging
+const DEBOUNCE_MS = 1500; // Delay for saving session data after activity stops
+const MAX_SESSION_MS = 24 * 60 * 60 * 1000; // Maximum duration for a single session to be considered valid
+const CLEANUP_DAYS = 30; // Data older than this will be removed by the cleanup process
 
+/**
+ * @description A logging utility that only logs messages when DEBUG is true.
+ * @param {...any} args - The arguments to log.
+ */
 function log(...args) {
   if (DEBUG) console.log('[ScreenSage]', ...args);
 }
 
+// --- DOMAIN & URL HELPERS ---
+
 /**
- * Extract domain from a URL
- * @param {string} url - The URL to extract domain from
- * @returns {string|null} - The domain name or null if invalid URL
+ * @description Determines if a URL is trackable, ignoring internal Chrome pages, local files, and extensions.
+ * @param {string} url - The URL to check.
+ * @returns {boolean} - True if the URL is trackable, false otherwise.
  */
 function isTrackableUrl(url) {
   if (!url || typeof url !== 'string') return false;
@@ -47,8 +74,11 @@ function getDomain(url) {
   }
 }
 
+// --- SESSION & DATA MANAGEMENT ---
+
 /**
- * Save the current session time
+ * @description Saves the time spent on the current domain to Chrome's local storage.
+ * It calculates the duration of the session and updates the total time spent on that domain.
  */
 async function saveCurrentSession() {
   if (!activeTabId || !activeDomain || !startTime || !isWindowFocused) return;
@@ -68,6 +98,10 @@ async function saveCurrentSession() {
   }
 }
 
+/**
+ * @description Schedules a debounced save of the current session. This prevents excessive writes
+ * to storage by waiting for a period of inactivity before saving.
+ */
 function scheduleSaveCurrentSession() {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
@@ -76,6 +110,11 @@ function scheduleSaveCurrentSession() {
   }, DEBOUNCE_MS);
 }
 
+/**
+ * @description Immediately saves the current session, clearing any scheduled debounced saves.
+ * This is used when the user navigates away from a page or closes a tab.
+ * @returns {Promise<void>}
+ */
 function flushSave() {
   if (debounceTimer) {
     clearTimeout(debounceTimer);
@@ -85,9 +124,9 @@ function flushSave() {
 }
 
 /**
- * Save domain usage statistics to storage
- * @param {string} domain - The domain name
- * @param {number} duration - Time spent on the domain in milliseconds
+ * @description Updates the usage statistics for a given domain in storage.
+ * @param {string} domain - The domain to update.
+ * @param {number} duration - The duration to add to the domain's usage, in milliseconds.
  */
 async function updateUsage(domain, duration) {
   if (duration <= 0 || duration > MAX_SESSION_MS) {
@@ -111,6 +150,10 @@ async function updateUsage(domain, duration) {
   }
 }
 
+/**
+ * @description Migrates legacy data stored in individual, per-domain keys to the new `usage` map format.
+ * This ensures backward compatibility for users updating from older versions of the extension.
+ */
 async function migrateLegacyToUsage() {
   try {
     const all = await chrome.storage.local.get(null);
@@ -135,6 +178,10 @@ async function migrateLegacyToUsage() {
   }
 }
 
+/**
+ * @description Removes old data from storage to prevent it from growing indefinitely. It removes entries
+ * that have not been accessed in a number of days defined by `CLEANUP_DAYS`.
+ */
 async function cleanupOldData() {
   try {
     const now = Date.now();
@@ -158,7 +205,13 @@ async function cleanupOldData() {
   }
 }
 
-// Track tab activation
+// --- CHROME EVENT LISTENERS ---
+// These listeners monitor browser events to track user activity accurately.
+
+/**
+ * @description Fired when the active tab in a window changes. Used to save the session
+ * for the previously active tab and start a new session for the newly activated tab.
+ */
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     await flushSave(); // Save time for previous tab
@@ -180,7 +233,10 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   }
 });
 
-// Track URL changes within tabs
+/**
+ * @description Fired when a tab is updated. This is crucial for single-page applications (SPAs)
+ * where navigation doesn't always trigger a tab activation change.
+ */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   try {
     if (tabId === activeTabId && changeInfo.url) {
@@ -194,6 +250,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
+/**
+ * @description Fired when a tab is closed. This ensures that the session for the closed
+ * tab is saved correctly.
+ */
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   try {
     if (tabId === activeTabId) {
@@ -208,7 +268,10 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 });
 
-// Track window focus
+/**
+ * @description Fired when the currently focused window changes. This allows the extension to
+ * pause and resume tracking when the user switches away from the browser.
+ */
 chrome.windows.onFocusChanged.addListener((windowId) => {
   try {
     if (windowId === chrome.windows.WINDOW_ID_NONE) {
@@ -225,18 +288,55 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
   }
 });
 
-// Save data periodically (every minute) as a safety net
+// --- PERIODIC & LIFECYCLE EVENTS ---
+
+/**
+ * @description A safety net that periodically saves the current session every minute.
+ * This ensures that data is not lost in case of a browser crash.
+ */
 setInterval(() => {
   void flushSave();
 }, 60000);
 
-// Save data when extension is about to be unloaded
+/**
+ * @description Saves the final session data when the extension's service worker is about to be terminated.
+ */
 chrome.runtime.onSuspend.addListener(() => {
   void flushSave();
 });
 
-// Create context menu on install
+// --- NOTIFICATIONS & ALARMS ---
+
+/**
+ * @description Schedules a daily notification to remind the user to reflect on their browsing habits.
+ * The notification is scheduled for 8 PM every day.
+ */
+function scheduleDailyReflectionNotification() {
+  const now = new Date();
+  const next8PM = new Date();
+
+  next8PM.setHours(20, 0, 0, 0); // Set to 8 PM today
+
+  // If 8 PM today has already passed, set it for 8 PM tomorrow
+  if (now.getTime() > next8PM.getTime()) {
+    next8PM.setDate(next8PM.getDate() + 1);
+  }
+
+  chrome.alarms.create('screensage-reflection-notification', {
+    when: next8PM.getTime(),
+    periodInMinutes: 24 * 60 // 24 hours
+  });
+  log('Scheduled daily reflection notification for', new Date(next8PM.getTime()));
+}
+
+// --- INITIALIZATION & CONTEXT MENUS ---
+
+/**
+ * @description Sets up the extension when it is first installed or updated.
+ * This includes creating context menus, migrating legacy data, and scheduling alarms.
+ */
 chrome.runtime.onInstalled.addListener(async () => {
+  // Create context menus for text proofreading and rewriting
   chrome.contextMenus.create({
     id: "proofreadText",
     title: "Polish with ScreenSage",
@@ -255,14 +355,22 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
   chrome.alarms.create('screensage-cleanup', { periodInMinutes: 24 * 60 });
   chrome.alarms.create('screensage-save-tick', { periodInMinutes: 1 });
+  scheduleDailyReflectionNotification();
 });
 
+/**
+ * @description Re-schedules alarms when the browser is started.
+ */
 chrome.runtime.onStartup.addListener(() => {
   chrome.alarms.create('screensage-cleanup', { periodInMinutes: 24 * 60 });
   chrome.alarms.create('screensage-save-tick', { periodInMinutes: 1 });
+  scheduleDailyReflectionNotification();
 });
 
-// Handle context menu click
+/**
+ * @description Handles clicks on the context menu items. It uses the Chrome AI API to
+ * proofread or rewrite the selected text and displays the result in an alert.
+ */
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (!info.selectionText || !chrome.ai) {
         return;
@@ -308,6 +416,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     }
 });
 
+/**
+ * @description Handles incoming alarms. This is used for periodic tasks like cleaning up old data,
+ * saving session data, and triggering the daily reflection notification.
+ */
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm && alarm.name === 'screensage-cleanup') {
     void cleanupOldData();
@@ -315,6 +427,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
   if (alarm && alarm.name === 'screensage-save-tick') {
     void flushSave();
+    return;
+  }
+  if (alarm && alarm.name === 'screensage-reflection-notification') {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'assets/logo.png',
+      title: 'Daily Reflection',
+      message: 'Time to reflect on your day with ScreenSage Lite!'
+    });
     return;
   }
 });
