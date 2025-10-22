@@ -5,7 +5,7 @@
  * API calls, and goal management.
  */
 
-import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateDigest, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges } from './ui.js';
+import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateDigest, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges, showConfirmationModal } from './ui.js';
 import { getStoredData } from './data.js';
 import { summarizePage, generateDigest, resetData, exportData, generateNudges } from './api.js';
 import { checkGoals } from './goals.js';
@@ -131,29 +131,32 @@ async function handleSummarize() {
 }
 
 /**
- * @description Handles the 'Reset Data' button click. It prompts the user for confirmation,
- * then calls the API to clear all stored browsing data and resets the UI.
+ * @description Handles the 'Reset Data' button click. It displays a custom confirmation modal
+ * before calling the API to clear all stored browsing data and resetting the UI.
  */
-async function handleReset() {
-    if (!confirm('Are you sure you want to reset all your browsing data? This cannot be undone.')) {
-        return;
-    }
-    try {
-        await resetData();
-        // Clear UI
-        updateQuickSummary({});
-        renderChart([], []);
-        updateStreakDisplay({ current: 0, lastActive: null });
-        updateDigest({ isFallback: false, content: 'Data has been reset.' });
-        confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-        });
-    } catch (error) {
-        console.error('Reset Error:', error);
-        showError('Failed to reset data.');
-    }
+function handleReset() {
+    showConfirmationModal(
+        'Reset All Data?',
+        'This will permanently delete all your browsing history. This action cannot be undone.',
+        async () => {
+            try {
+                await resetData();
+                // Clear UI
+                updateQuickSummary({});
+                renderChart([], []);
+                updateStreakDisplay({ current: 0, lastActive: null });
+                updateDigest({ isFallback: false, content: 'Your data has been successfully reset.' });
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            } catch (error) {
+                console.error('Reset Error:', error);
+                showError('Failed to reset data.');
+            }
+        }
+    );
 }
 
 /**

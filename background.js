@@ -185,39 +185,37 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (!info.selectionText || !chrome.ai) return;
 
     let resultText = '';
-    let alertTitle = '';
-    let errorMsg = "⚠️ Could not perform AI action.";
+    let title = '';
+    let error = null;
 
     try {
         if (info.menuItemId === "proofreadText") {
-            alertTitle = '✅ Proofread Text';
+            title = '✅ Proofread Text';
             if (!chrome.ai.proofreader) throw new Error("Proofreader API not available");
             const result = await chrome.ai.proofreader.correct({ input: info.selectionText });
             resultText = result.output;
-
         } else if (info.menuItemId === "rewriteText") {
-            alertTitle = '✍️ Rewritten Text';
+            title = '✍️ Rewritten Text';
             if (!chrome.ai.prompt) throw new Error("Prompt API not available");
             const result = await chrome.ai.prompt.generate({
                 input: `Rewrite the following text to be clearer and more concise, while retaining the original meaning:\n\n"${info.selectionText}"`
             });
             resultText = result.output;
         }
-
-        chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: (text, title) => {
-                alert(title + ":\n\n" + text);
-            },
-            args: [resultText, alertTitle]
-        });
-
     } catch (err) {
         console.error("Context Menu AI Error:", err);
-        chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: (msg) => alert(msg),
-            args: [errorMsg]
-        });
+        error = "Could not perform AI action. The AI model may not be available on your device.";
     }
+
+    // Open a custom modal window instead of an alert
+    const url = new URL(chrome.runtime.getURL('modal/modal.html'));
+    url.searchParams.set('title', title || 'Error');
+    url.searchParams.set('content', error || resultText);
+
+    chrome.windows.create({
+        url: url.href,
+        type: 'popup',
+        width: 400,
+        height: 320,
+    });
 });
