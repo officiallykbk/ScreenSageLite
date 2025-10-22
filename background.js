@@ -182,7 +182,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    if (!info.selectionText || !chrome.ai) return;
+    if (!info.selectionText) return;
 
     let resultText = '';
     let title = '';
@@ -191,12 +191,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     try {
         if (info.menuItemId === "proofreadText") {
             title = '✅ Proofread Text';
-            if (!chrome.ai.proofreader) throw new Error("Proofreader API not available");
-            const result = await chrome.ai.proofreader.correct({ input: info.selectionText });
-            resultText = result.output;
+            if (typeof globalThis.Proofreader === 'undefined' || await Proofreader.availability() !== 'readily') {
+                 throw new Error("Proofreader API is not available or not ready.");
+            }
+            const proofreader = await Proofreader.create();
+            const result = await proofreader.proofread(info.selectionText);
+            resultText = result.corrected; // The corrected text is in the 'corrected' property
+            proofreader.close(); // Clean up the instance
+
         } else if (info.menuItemId === "rewriteText") {
             title = '✍️ Rewritten Text';
-            if (!chrome.ai.prompt) throw new Error("Prompt API not available");
+            if (!chrome.ai || !chrome.ai.prompt) throw new Error("Prompt API not available");
             const result = await chrome.ai.prompt.generate({
                 input: `Rewrite the following text to be clearer and more concise, while retaining the original meaning:\n\n"${info.selectionText}"`
             });
@@ -204,7 +209,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         }
     } catch (err) {
         console.error("Context Menu AI Error:", err);
-        error = "Could not perform AI action. The AI model may not be available on your device.";
+        error = `Could not perform AI action: ${err.message}`;
     }
 
     // Open a custom modal window instead of an alert
