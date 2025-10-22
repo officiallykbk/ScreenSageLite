@@ -35,34 +35,62 @@ export async function summarizePage() {
 import { getStoredData } from './data.js';
 
 export async function generateDigest(usageData) {
-    // Per the feature description, use the Summarizer API for the daily digest.
-    if (!chrome.ai || !chrome.ai.summarizer) {
-        throw new Error("Chrome AI Summarizer not available. Cannot generate digest.");
+    try {
+        // Per the feature description, use the Summarizer API for the daily digest.
+        if (!chrome.ai || !chrome.ai.summarizer) {
+            throw new Error("Chrome AI Summarizer not available.");
+        }
+
+        const { userGoals } = await getStoredData(['userGoals']);
+
+        // Construct a detailed text block with browsing data and user goals for the summarizer.
+        let goalContext = '';
+        if (userGoals) {
+            goalContext += "\nMy personal goals are:\n";
+            if (userGoals.socialLimit) goalContext += `- Limit social media to ${userGoals.socialLimit} minutes.\n`;
+            if (userGoals.videoLimit) goalContext += `- Limit video to ${userGoals.videoLimit} minutes.\n`;
+            if (userGoals.workMinimum) goalContext += `- Spend at least ${userGoals.workMinimum} minutes on productivity.\n`;
+        }
+
+        const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
+        const domainText = Object.entries(usageData)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(0)} min`)
+            .join('\n');
+
+        // Create a clear input string for the summarizer, providing context and instructions.
+        const inputText = `Summarize the following browsing data into a concise, insightful summary (e.g., "Work: 3 hrs, Social: 1.5 hrs"). Be encouraging and non-judgmental. If personal goals are set, comment on the progress.\n\n---BEGIN DATA---\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}${goalContext}\n---END DATA---`;
+
+        const result = await chrome.ai.summarizer.summarize({ input: inputText });
+        return { isFallback: false, content: result.output };
+    } catch (error) {
+        console.warn("AI Digest generation failed, fetching motivational quote as fallback.", error);
+        try {
+            const response = await fetch('https://zenquotes.io/api/random');
+            if (!response.ok) {
+                 throw new Error(`ZenQuotes API request failed with status ${response.status}`);
+            }
+            const data = await response.json();
+            if (!data || data.length === 0 || !data[0].q || !data[0].a) {
+                throw new Error("Invalid data format from ZenQuotes API");
+            }
+            // Return a structured object to let the UI know this is a fallback quote
+            return {
+                isFallback: true,
+                quote: data[0].q,
+                author: data[0].a,
+            };
+        } catch (fallbackError) {
+            console.error("Fallback to motivational quote also failed.", fallbackError);
+            // Provide a hardcoded, generic fallback if the API also fails
+            return {
+                isFallback: true,
+                quote: "The journey of a thousand miles begins with a single step.",
+                author: "Lao Tzu",
+            };
+        }
     }
-
-    const { userGoals } = await getStoredData(['userGoals']);
-
-    // Construct a detailed text block with browsing data and user goals for the summarizer.
-    let goalContext = '';
-    if (userGoals) {
-        goalContext += "\nMy personal goals are:\n";
-        if (userGoals.socialLimit) goalContext += `- Limit social media to ${userGoals.socialLimit} minutes.\n`;
-        if (userGoals.videoLimit) goalContext += `- Limit video to ${userGoals.videoLimit} minutes.\n`;
-        if (userGoals.workMinimum) goalContext += `- Spend at least ${userGoals.workMinimum} minutes on productivity.\n`;
-    }
-
-    const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
-    const domainText = Object.entries(usageData)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(0)} min`)
-        .join('\n');
-
-    // Create a clear input string for the summarizer, providing context and instructions.
-    const inputText = `Summarize the following browsing data into a concise, insightful summary (e.g., "Work: 3 hrs, Social: 1.5 hrs"). Be encouraging and non-judgmental. If personal goals are set, comment on the progress.\n\n---BEGIN DATA---\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}${goalContext}\n---END DATA---`;
-
-    const result = await chrome.ai.summarizer.summarize({ input: inputText });
-    return result.output;
 }
 
 export async function generateNudges(usageData) {

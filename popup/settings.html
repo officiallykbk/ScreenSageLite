@@ -20,12 +20,16 @@
                 <h2>Manage Goals</h2>
                 <form id="goals-form">
                     <div class="form-group">
-                        <label for="max-social-media">Max Social Media Time (minutes per day)</label>
-                        <input type="number" id="max-social-media" name="max-social-media" min="0">
+                        <label for="social-limit">Max Social Media Time (minutes per day)</label>
+                        <input type="number" id="social-limit" name="social-limit" min="0" placeholder="e.g., 60">
+                    </div>
+                     <div class="form-group">
+                        <label for="video-limit">Max Video Time (minutes per day)</label>
+                        <input type="number" id="video-limit" name="video-limit" min="0" placeholder="e.g., 90">
                     </div>
                     <div class="form-group">
-                        <label for="min-productivity">Min Productivity Time (minutes per day)</label>
-                        <input type="number" id="min-productivity" name="min-productivity" min="0">
+                        <label for="work-minimum">Min Productivity Time (minutes per day)</label>
+                        <input type="number" id="work-minimum" name="work-minimum" min="0" placeholder="e.g., 120">
                     </div>
                     <button type="submit" class="action-btn">Save Goals</button>
                 </form>

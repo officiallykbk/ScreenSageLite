@@ -1,26 +1,13 @@
+# Python
+__pycache__/
+*.pyc
 
----
+# Node
+node_modules/
 
-## 🔹 `.gitignore`
-Add a `.gitignore` for neatness:
-
-
----
-
-## 🔹 `LICENSE` (MIT)
-Create a `LICENSE` file:
-
-System files
-
+# OS
 .DS_Store
 Thumbs.db
 
-Logs
-
-*.log
-
-Node modules 
-
-node_modules/
-
-.env
+# Jules
+jules-scratch/

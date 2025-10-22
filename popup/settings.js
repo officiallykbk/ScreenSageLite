@@ -1,15 +1,17 @@
 // popup/settings.js
 document.addEventListener('DOMContentLoaded', () => {
     const goalsForm = document.getElementById('goals-form');
-    const maxSocialMediaInput = document.getElementById('max-social-media');
-    const minProductivityInput = document.getElementById('min-productivity');
+    const socialLimitInput = document.getElementById('social-limit');
+    const videoLimitInput = document.getElementById('video-limit');
+    const workMinimumInput = document.getElementById('work-minimum');
     const saveButton = goalsForm.querySelector('.action-btn');
 
-    // Load existing goals from storage
-    chrome.storage.sync.get(['goals'], (result) => {
-        if (result.goals) {
-            maxSocialMediaInput.value = result.goals.maxSocialMediaTime || '';
-            minProductivityInput.value = result.goals.minProductivityTime || '';
+    // Load existing goals from chrome.storage.local
+    chrome.storage.local.get(['userGoals'], (result) => {
+        if (result.userGoals) {
+            socialLimitInput.value = result.userGoals.socialLimit || '';
+            videoLimitInput.value = result.userGoals.videoLimit || '';
+            workMinimumInput.value = result.userGoals.workMinimum || '';
         }
     });
 
@@ -17,12 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
     goalsForm.addEventListener('submit', (event) => {
         event.preventDefault();
 
-        const goals = {
-            maxSocialMediaTime: parseInt(maxSocialMediaInput.value, 10) || 0,
-            minProductivityTime: parseInt(minProductivityInput.value, 10) || 0,
+        const userGoals = {
+            socialLimit: parseInt(socialLimitInput.value, 10) || null,
+            videoLimit: parseInt(videoLimitInput.value, 10) || null,
+            workMinimum: parseInt(workMinimumInput.value, 10) || null,
         };
 
-        chrome.storage.sync.set({ goals }, () => {
+        chrome.storage.local.set({ userGoals }, () => {
             // Provide feedback to the user
             saveButton.textContent = 'Saved!';
             setTimeout(() => {
