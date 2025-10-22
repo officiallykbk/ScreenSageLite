@@ -104,14 +104,37 @@ export function hideError() {
     setTimeout(() => errorCard.style.display = 'none', 300);
 }
 
-export function updateReflection(content) {
+export function updateDigest(digest) {
     const reflectionCard = document.getElementById('reflection-card');
     const reflectionContent = document.getElementById('reflectionContent');
+    const fallbackCard = document.getElementById('fallback-card');
+    const fallbackQuote = document.getElementById('fallback-quote');
+    const fallbackAuthor = document.getElementById('fallback-author');
 
-    reflectionContent.innerHTML = content;
-    reflectionCard.style.display = 'block';
-    showLoadingState(false);
-    setTimeout(() => reflectionCard.style.opacity = 1, 10);
+    // Hide both cards initially to ensure a clean slate
+    reflectionCard.style.display = 'none';
+    fallbackCard.style.display = 'none';
+
+    if (digest.isFallback) {
+        // We received a motivational quote
+        fallbackQuote.textContent = `“${digest.quote}”`;
+        fallbackAuthor.textContent = digest.author;
+        fallbackCard.style.display = 'block';
+        setTimeout(() => fallbackCard.style.opacity = 1, 10);
+    } else {
+        // We received a standard AI digest
+        reflectionContent.innerHTML = digest.content;
+        reflectionCard.style.display = 'block';
+        setTimeout(() => reflectionCard.style.opacity = 1, 10);
+    }
+     showLoadingState(false);
+}
+
+// Keep updateReflection for any part of the code that might still use it for non-digest content.
+export function updateReflection(content) {
+    // This function can now be a simple wrapper or be deprecated over time.
+    // For now, it will assume the content is a standard digest.
+    updateDigest({ isFallback: false, content: content });
 }
 
 export function updateNudges(content) {

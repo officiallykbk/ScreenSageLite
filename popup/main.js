@@ -5,7 +5,7 @@
  * API calls, and goal management.
  */
 
-import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateReflection, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges } from './ui.js';
+import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateDigest, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges } from './ui.js';
 import { getStoredData } from './data.js';
 import { summarizePage, generateDigest, resetData, exportData, generateNudges } from './api.js';
 import { checkGoals } from './goals.js';
@@ -83,7 +83,9 @@ async function handleDigest() {
     try {
         const { usage } = await getStoredData(['usage']);
         if (!usage || Object.keys(usage).length === 0) {
-            updateReflection('No browsing data to analyze yet.');
+            // Even with no data, we can show a motivational quote as a fallback.
+            const digest = await generateDigest(usage);
+            updateDigest(digest);
             return;
         }
         // Generate both the digest and nudges in parallel for a faster response.
@@ -92,7 +94,7 @@ async function handleDigest() {
             generateNudges(usage)
         ]);
 
-        updateReflection(digest);
+        updateDigest(digest);
         updateNudges(nudges);
 
     } catch (error) {
@@ -117,7 +119,8 @@ async function handleSummarize() {
 
     try {
         const summary = await summarizePage();
-        updateReflection(summary);
+        // We wrap the summary text in the digest object structure for the UI function.
+        updateDigest({ isFallback: false, content: summary });
     } catch (error) {
         console.error('Summarize Error:', error);
         showError(`Summarization failed: ${error.message}`);
@@ -141,7 +144,7 @@ async function handleReset() {
         updateQuickSummary({});
         renderChart([], []);
         updateStreakDisplay({ current: 0, lastActive: null });
-        updateReflection('Data has been reset.');
+        updateDigest({ isFallback: false, content: 'Data has been reset.' });
         confetti({
             particleCount: 100,
             spread: 70,
