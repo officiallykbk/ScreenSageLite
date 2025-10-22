@@ -81,8 +81,29 @@ export async function generateNudges(usageData) {
 }
 
 export async function resetData() {
+    // We must preserve essential settings like goals and theme, so we can't use .clear().
+    // Instead, we get all keys and remove only the browsing data.
+    const allData = await new Promise((resolve, reject) => {
+        chrome.storage.local.get(null, (items) => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve(items);
+        });
+    });
+
+    const keysToRemove = Object.keys(allData).filter(key => {
+        // This is the core browsing data
+        if (key === 'usage' || key === 'usageMeta') return true;
+        // These are settings to preserve
+        if (key === 'userGoals' || key === 'theme' || key === 'streakData') return false;
+        // This is a heuristic to catch legacy per-domain keys
+        if (key.includes('.')) return true;
+        return false;
+    });
+
     return new Promise((resolve, reject) => {
-        chrome.storage.local.clear(() => {
+        chrome.storage.local.remove(keysToRemove, () => {
             if (chrome.runtime.lastError) {
                 return reject(chrome.runtime.lastError);
             }

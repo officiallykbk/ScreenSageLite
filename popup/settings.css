@@ -39,10 +39,17 @@ body {
     font-weight: 500;
 }
 
+header h1 {
+    text-align: center;
+    width: 100%; /* Ensure it takes full width to center */
+}
+
 .form-group input {
     width: 100%;
     padding: 0.8rem 1rem;
-    border: 1px solid var(--border-color);
+    /* Add a more visible border and ensure correct sizing */
+    border: 2px solid var(--border-color, #ccc);
+    box-sizing: border-box;
     border-radius: 8px;
     background-color: var(--card-bg-color);
     color: var(--text-color);
