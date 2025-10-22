@@ -267,3 +267,30 @@ export function loadOwlMascot() {
             });
     }
 }
+
+export function showConfirmationModal(title, message, onConfirm) {
+    const modalOverlay = document.getElementById('confirmation-modal-overlay');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    const cancelBtn = document.getElementById('modal-cancel-btn');
+
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+
+    modalOverlay.style.display = 'flex';
+
+    const handleConfirm = () => {
+        onConfirm();
+        hideModal();
+    };
+
+    const hideModal = () => {
+        modalOverlay.style.display = 'none';
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', hideModal);
+    };
+
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', hideModal);
+}

@@ -1,0 +1,52 @@
+body {
+    width: 380px;
+    height: 280px;
+    background: linear-gradient(135deg, var(--background-start), var(--background-end));
+    animation: gradient-animation 20s ease infinite;
+    color: var(--text-primary);
+}
+
+.container {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+h2 {
+    text-align: center;
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.result-container {
+    flex-grow: 1;
+    background: var(--card-background);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 15px;
+    overflow-y: auto;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.action-btn {
+    margin-top: 15px;
+    width: 100%;
+    text-align: center;
+    background: var(--accent-color);
+    color: white;
+    padding: 12px;
+}
