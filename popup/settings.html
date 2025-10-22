@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScreenSage Settings</title>
+    <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="dark-mode.css">
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="popup.html" class="back-link">&larr; Back</a>
+            <h1>Settings</h1>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Manage Goals</h2>
+                <form id="goals-form">
+                    <div class="form-group">
+                        <label for="max-social-media">Max Social Media Time (minutes per day)</label>
+                        <input type="number" id="max-social-media" name="max-social-media" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="min-productivity">Min Productivity Time (minutes per day)</label>
+                        <input type="number" id="min-productivity" name="min-productivity" min="0">
+                    </div>
+                    <button type="submit" class="action-btn">Save Goals</button>
+                </form>
+            </div>
+        </main>
+    </div>
+    <script src="settings.js"></script>
+</body>
+</html>

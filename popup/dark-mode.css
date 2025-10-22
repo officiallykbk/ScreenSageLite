@@ -1,0 +1,9 @@
+body.dark-mode {
+    --background-start: #2d3748;
+    --background-end: #1a202c;
+    --card-background: rgba(45, 55, 72, 0.4);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --text-primary: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --icon-color: #a0aec0;
+}
