@@ -191,13 +191,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     try {
         if (info.menuItemId === "proofreadText") {
             title = '✅ Proofread Text';
-            if (typeof globalThis.Proofreader === 'undefined' || await Proofreader.availability() !== 'readily') {
-                 throw new Error("Proofreader API is not available or not ready.");
+            if (!chrome.ai || !chrome.ai.proofreader) {
+                throw new Error("Proofreader API is not available.");
             }
-            const proofreader = await Proofreader.create();
-            const result = await proofreader.proofread(info.selectionText);
-            resultText = result.corrected; // The corrected text is in the 'corrected' property
-            proofreader.close(); // Clean up the instance
+            const result = await chrome.ai.proofreader.proofread({
+                input: info.selectionText
+            });
+            resultText = result.output;
 
         } else if (info.menuItemId === "rewriteText") {
             title = '✍️ Rewritten Text';
