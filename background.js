@@ -4,7 +4,7 @@
  * such as tracking browsing activity, managing data storage, and setting up alarms and context menus.
  * It is the central nervous system of ScreenSage Lite.
  *
- * @version 2.1 - Refactored for Efficient Data Storage
+ * @version 2.2 - Restored Tracking Logic & Standardized AI
  */
 
 // --- GLOBAL STATE ---
@@ -38,11 +38,7 @@ function getDomain(url) {
   } catch (e) { return null; }
 }
 
-// --- SESSION & DATA MANAGEMENT (REFINED) ---
-
-/**
- * @description Loads the usage data from storage into the in-memory cache on startup.
- */
+// --- SESSION & DATA MANAGEMENT ---
 async function loadUsageCache() {
     try {
         const { usage = {} } = await chrome.storage.local.get('usage');
@@ -53,12 +49,8 @@ async function loadUsageCache() {
     }
 }
 
-/**
- * @description Commits the in-memory usage cache to chrome.storage.local.
- */
 async function commitUsageCache() {
     if (Object.keys(usageCache).length === 0) return;
-
     try {
         await chrome.storage.local.set({ usage: usageCache });
         log('💾 Usage cache committed to storage.', { domains: Object.keys(usageCache).length });
@@ -69,12 +61,9 @@ async function commitUsageCache() {
 
 async function endSession() {
     if (!currentSession) return;
-
     const sessionToEnd = { ...currentSession };
     currentSession = null;
-
     const duration = Date.now() - sessionToEnd.startTime;
-
     if (duration > 1000 && duration < MAX_SESSION_MS) {
         usageCache[sessionToEnd.domain] = (usageCache[sessionToEnd.domain] || 0) + duration;
         log('✅ Session Ended, cache updated:', { domain: sessionToEnd.domain, duration: `${(duration/1000).toFixed(1)}s` });
@@ -83,7 +72,6 @@ async function endSession() {
 
 async function startSession(tab) {
     await endSession();
-
     const domain = getDomain(tab?.url);
     if (domain) {
         currentSession = {
@@ -96,7 +84,6 @@ async function startSession(tab) {
 }
 
 // --- CHROME EVENT LISTENERS ---
-
 async function getCurrentTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -118,20 +105,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
-function scheduleDailyReflectionNotification() {
-  const now = new Date();
-  const next8PM = new Date();
-  next8PM.setHours(20, 0, 0, 0);
-  if (now.getTime() > next8PM.getTime()) {
-    next8PM.setDate(next8PM.getDate() + 1);
-  }
-  chrome.alarms.create('screensage-reflection-notification', {
-    when: next8PM.getTime(),
-    periodInMinutes: 24 * 60
-  });
-  log('Scheduled daily reflection notification for', new Date(next8PM.getTime()));
-}
-
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
     await endSession();
@@ -152,32 +125,22 @@ chrome.idle.onStateChanged.addListener(async (newState) => {
   }
 });
 
-// --- INITIALIZATION & ALARMS ---
-
+// --- INITIALIZATION, ALARMS & CONTEXT MENUS ---
 chrome.runtime.onInstalled.addListener(async () => {
   chrome.idle.setDetectionInterval(IDLE_DETECTION_SECONDS);
   chrome.alarms.create('commit-cache', { periodInMinutes: COMMIT_INTERVAL_MINUTES });
   chrome.contextMenus.create({ id: "proofreadText", title: "Polish with ScreenSage", contexts: ["selection"] });
   chrome.contextMenus.create({ id: "rewriteText", title: "Rewrite with ScreenSage", contexts: ["selection"] });
-  scheduleDailyReflectionNotification();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   loadUsageCache();
   chrome.alarms.create('commit-cache', { periodInMinutes: COMMIT_INTERVAL_MINUTES });
-  scheduleDailyReflectionNotification();
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'commit-cache') {
     commitUsageCache();
-  } else if (alarm.name === 'screensage-reflection-notification') {
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'assets/logo.png',
-      title: 'Daily Reflection',
-      message: 'Time to reflect on your day with ScreenSage Lite!'
-    });
   }
 });
 
@@ -189,30 +152,31 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     let error = null;
 
     try {
+        const canCreate = await chrome.ai.canCreateTextSession();
+        if (canCreate !== 'readily') {
+            throw new Error(`AI Text Session not ready. Status: ${canCreate}`);
+        }
+
+        const session = await chrome.ai.createTextSession();
+
         if (info.menuItemId === "proofreadText") {
             title = '✅ Proofread Text';
-            if (!chrome.ai || !chrome.ai.proofreader) {
-                throw new Error("Proofreader API is not available.");
-            }
-            const result = await chrome.ai.proofreader.proofread({
-                input: info.selectionText
-            });
-            resultText = result.output;
+            const prompt = `Proofread and correct the following text for grammar and spelling errors:\n\n"${info.selectionText}"`;
+            resultText = await session.prompt(prompt);
 
         } else if (info.menuItemId === "rewriteText") {
             title = '✍️ Rewritten Text';
-            if (!chrome.ai || !chrome.ai.prompt) throw new Error("Prompt API not available");
-            const result = await chrome.ai.prompt.generate({
-                input: `Rewrite the following text to be clearer and more concise, while retaining the original meaning:\n\n"${info.selectionText}"`
-            });
-            resultText = result.output;
+            const prompt = `Rewrite the following text to be clearer and more concise, while retaining the original meaning:\n\n"${info.selectionText}"`;
+            resultText = await session.prompt(prompt);
         }
+
+        session.destroy();
+
     } catch (err) {
         console.error("Context Menu AI Error:", err);
         error = `Could not perform AI action: ${err.message}`;
     }
 
-    // Open a custom modal window instead of an alert
     const url = new URL(chrome.runtime.getURL('modal/modal.html'));
     url.searchParams.set('title', title || 'Error');
     url.searchParams.set('content', error || resultText);
