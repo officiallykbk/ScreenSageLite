@@ -3,7 +3,6 @@
   "name": "ScreenSage Lite",
   "description": "Your private, local AI mentor that summarizes your browsing day.",
   "version": "1.0",
-  "key": "YOUR_ORIGIN_TRIAL_TOKEN_GOES_HERE",
   "permissions": [
     "tabs",
     "storage",
@@ -13,8 +12,7 @@
     "alarms",
     "downloads",
     "idle",
-    "notifications",
-    "ai"
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>"

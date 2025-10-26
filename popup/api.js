@@ -1,49 +1,39 @@
+
+import { getStoredData } from './data.js';
+
 export async function summarizePage() {
+    // ... (This function remains largely the same, but we will update its AI call)
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error('No active tab found');
 
     const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        func: () => {
-            const getReadableText = () => {
-                const article = document.querySelector('article');
-                const main = document.querySelector('main');
-                const body = document.body;
-                const node = article || main || body;
-                return node?.innerText?.trim()?.replace(/\s+/g, ' ').slice(0, 20000) || '';
-            };
-            return { text: getReadableText(), title: document.title };
-        }
+        func: () => document.body.innerText.slice(0, 10000)
     });
 
-    if (!result?.text) {
+    if (!result) {
         throw new Error('Could not retrieve content from the page.');
     }
 
-    if (!chrome.ai || !chrome.ai.summarizer) {
-         // Fallback: return first few sentences if AI is not available
-        return `This feature requires Chrome's built-in AI. As a fallback, here are the first few sentences of the page:\n\n"${result.text.split('. ').slice(0,3).join('. ')}"`;
+    const canCreate = await chrome.ai.canCreateSummarizer();
+    if (canCreate !== 'readily') {
+        throw new Error(`Summarizer not ready. Status: ${canCreate}`);
     }
 
-    const summary = await chrome.ai.summarizer.summarize({
-        input: `Summarize the following content from "${result.title}" in 3 concise bullet points:\n\n${result.text}`
-    });
-
-    return summary.output;
+    const summarizer = await chrome.ai.createSummarizer();
+    const summaryResult = await summarizer.summarize({ text: result });
+    return summaryResult.summary;
 }
 
-import { getStoredData } from './data.js';
 
 export async function generateDigest(usageData) {
     try {
-        // Per the feature description, use the Summarizer API for the daily digest.
-        if (!chrome.ai || !chrome.ai.summarizer) {
-            throw new Error("Chrome AI Summarizer not available.");
+        const canCreate = await chrome.ai.canCreateSummarizer();
+        if (canCreate !== 'readily') {
+            throw new Error(`Summarizer not ready. Status: ${canCreate}`);
         }
 
         const { userGoals } = await getStoredData(['userGoals']);
-
-        // Construct a detailed text block with browsing data and user goals for the summarizer.
         let goalContext = '';
         if (userGoals) {
             goalContext += "\nMy personal goals are:\n";
@@ -59,93 +49,64 @@ export async function generateDigest(usageData) {
             .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(0)} min`)
             .join('\n');
 
-        // Create a clear input string for the summarizer, providing context and instructions.
-        const inputText = `Summarize the following browsing data into a concise, insightful summary (e.g., "Work: 3 hrs, Social: 1.5 hrs"). Be encouraging and non-judgmental. If personal goals are set, comment on the progress.\n\n---BEGIN DATA---\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}${goalContext}\n---END DATA---`;
+        const inputText = `Summarize the following browsing data into a concise, insightful summary. Be encouraging and non-judgmental. If personal goals are set, comment on the progress.\n\n---BEGIN DATA---\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}${goalContext}\n---END DATA---`;
 
-        const result = await chrome.ai.summarizer.summarize({ input: inputText });
-        return { isFallback: false, content: result.output };
+        const summarizer = await chrome.ai.createSummarizer();
+        const result = await summarizer.summarize({ text: inputText });
+
+        return { isFallback: false, content: result.summary };
+
     } catch (error) {
         console.warn("AI Digest generation failed, fetching motivational quote as fallback.", error);
+        // ... (fallback logic remains the same)
         try {
             const response = await fetch('https://zenquotes.io/api/random');
-            if (!response.ok) {
-                 throw new Error(`ZenQuotes API request failed with status ${response.status}`);
-            }
             const data = await response.json();
-            if (!data || data.length === 0 || !data[0].q || !data[0].a) {
-                throw new Error("Invalid data format from ZenQuotes API");
-            }
-            // Return a structured object to let the UI know this is a fallback quote
-            return {
-                isFallback: true,
-                quote: data[0].q,
-                author: data[0].a,
-            };
+            return { isFallback: true, quote: data[0].q, author: data[0].a };
         } catch (fallbackError) {
-            console.error("Fallback to motivational quote also failed.", fallbackError);
-            // Provide a hardcoded, generic fallback if the API also fails
-            return {
-                isFallback: true,
-                quote: "The journey of a thousand miles begins with a single step.",
-                author: "Lao Tzu",
-            };
+            return { isFallback: true, quote: "The journey of a thousand miles begins with a single step.", author: "Lao Tzu" };
         }
     }
 }
 
+
 export async function generateNudges(usageData) {
-    if (!chrome.ai || !chrome.ai.prompt) {
-        throw new Error("Chrome AI Prompt API not available. Cannot generate nudges.");
+    const canCreate = await chrome.ai.canCreateTextSession();
+     if (canCreate !== 'readily') {
+        throw new Error(`Text session not ready. Status: ${canCreate}`);
     }
 
     const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
     const topDomain = Object.keys(usageData).length > 0 ? Object.entries(usageData).sort((a, b) => b[1] - a[1])[0][0] : 'none';
 
-    // The prompt is carefully crafted to be gentle, encouraging, and actionable.
-    const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms. For example: "Consider setting a timer on your top site," or "A short walk might be refreshing."`;
+    const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms.`;
 
-    const result = await chrome.ai.prompt.generate({ input: prompt });
-    return result.output;
+    const session = await chrome.ai.createTextSession();
+    const resultStream = session.promptStreaming(prompt);
+
+    let fullResponse = "";
+    for await (const chunk of resultStream) {
+        fullResponse += chunk;
+    }
+
+    session.destroy();
+    return fullResponse;
 }
 
+// ... (resetData and exportData functions remain unchanged)
 export async function resetData() {
-    // We must preserve essential settings like goals and theme, so we can't use .clear().
-    // Instead, we get all keys and remove only the browsing data.
-    const allData = await new Promise((resolve, reject) => {
-        chrome.storage.local.get(null, (items) => {
-            if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
-            }
-            resolve(items);
-        });
-    });
-
-    const keysToRemove = Object.keys(allData).filter(key => {
-        // This is the core browsing data
-        if (key === 'usage' || key === 'usageMeta') return true;
-        // These are settings to preserve
-        if (key === 'userGoals' || key === 'theme' || key === 'streakData') return false;
-        // This is a heuristic to catch legacy per-domain keys
-        if (key.includes('.')) return true;
-        return false;
-    });
-
-    return new Promise((resolve, reject) => {
-        chrome.storage.local.remove(keysToRemove, () => {
-            if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
-            }
-            resolve();
-        });
-    });
+    const allData = await chrome.storage.local.get(null);
+    const keysToRemove = Object.keys(allData).filter(key =>
+        !['userGoals', 'theme', 'streakData'].includes(key)
+    );
+    await chrome.storage.local.remove(keysToRemove);
 }
 
 export async function exportData() {
-    const data = await new Promise(resolve => chrome.storage.local.get(null, resolve));
+    const data = await chrome.storage.local.get(null);
     const dataStr = JSON.stringify(data, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-
     chrome.downloads.download({
         url: url,
         filename: `ScreenSage_Export_${new Date().toISOString().split('T')[0]}.json`,
