@@ -144,47 +144,18 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    if (!info.selectionText) return;
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (!info.selectionText || !tab?.id) return;
 
-    let resultText = '';
-    let title = '';
-    let error = null;
-
-    try {
-        const canCreate = await chrome.ai.canCreateTextSession();
-        if (canCreate !== 'readily') {
-            throw new Error(`AI Text Session not ready. Status: ${canCreate}`);
-        }
-
-        const session = await chrome.ai.createTextSession();
-
-        if (info.menuItemId === "proofreadText") {
-            title = '✅ Proofread Text';
-            const prompt = `Proofread and correct the following text for grammar and spelling errors:\n\n"${info.selectionText}"`;
-            resultText = await session.prompt(prompt);
-
-        } else if (info.menuItemId === "rewriteText") {
-            title = '✍️ Rewritten Text';
-            const prompt = `Rewrite the following text to be clearer and more concise, while retaining the original meaning:\n\n"${info.selectionText}"`;
-            resultText = await session.prompt(prompt);
-        }
-
-        session.destroy();
-
-    } catch (err) {
-        console.error("Context Menu AI Error:", err);
-        error = `Could not perform AI action: ${err.message}`;
-    }
-
-    const url = new URL(chrome.runtime.getURL('modal/modal.html'));
-    url.searchParams.set('title', title || 'Error');
-    url.searchParams.set('content', error || resultText);
-
-    chrome.windows.create({
-        url: url.href,
-        type: 'popup',
-        width: 400,
-        height: 320,
+    chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js'],
+    }, () => {
+        // After injecting, send a message to the content script with the task details
+        chrome.tabs.sendMessage(tab.id, {
+            type: 'CONTEXT_MENU_COMMAND',
+            menuItemId: info.menuItemId,
+            selectionText: info.selectionText,
+        });
     });
 });
