@@ -7,7 +7,8 @@
 
 import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateDigest, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges, showConfirmationModal } from './ui.js';
 import { getStoredData } from './data.js';
-import { summarizePage, generateDigest, resetData, exportData, generateNudges } from './api.js';
+// --- MODIFIED --- Import the new AI logging function
+import { summarizePage, generateDigest, resetData, exportData, generateNudges, logAiAvailability } from './api.js';
 import { checkGoals } from './goals.js';
 
 /**
@@ -16,20 +17,20 @@ import { checkGoals } from './goals.js';
  * and sets up all necessary event listeners for user actions.
  */
 document.addEventListener('DOMContentLoaded', async () => {
-    // --- 1. INITIAL UI SETUP ---
-    // Hide any previous error messages, load the animated owl mascot, and apply the saved theme (dark/light).
+    // --- 1. INITIAL UI SETUP & DIAGNOSTICS ---
+    logAiAvailability(); // Run the AI diagnostic check on popup open.
     hideError();
     loadOwlMascot();
     initTheme();
 
     // --- 2. LOAD INITIAL DATA & RENDER ---
-    // Fetch stored usage and streak data, then update the UI components like the summary,
-    // streak counter, and the main chart.
+    // --- MODIFIED --- Request real-time data from the background script
+    // instead of just reading from storage. This gives an up-to-the-second view.
     try {
-        const { usage, streakData } = await getStoredData(['usage', 'streakData']);
-        const usageData = usage || {};
+        const usageData = await chrome.runtime.sendMessage({ type: 'GET_USAGE_DATA' });
+        const { streakData } = await getStoredData(['streakData']); // Streak data is still fine from storage
 
-        updateQuickSummary(usageData);
+        updateQuickSummary(usageData || {});
         updateStreakDisplay(streakData || { current: 0, lastActive: null });
 
         const topDomains = Object.entries(usageData).sort((a, b) => b[1] - a[1]).slice(0, 10);

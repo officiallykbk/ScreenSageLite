@@ -194,6 +194,23 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* --- NEW --- Styling for the context menu tip */
+.context-menu-tip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.context-menu-tip svg {
+    flex-shrink: 0;
+    stroke: var(--accent-color);
+}
+/* --- END --- */
+
 .btn-icon {
     width: 24px;
     height: 24px;

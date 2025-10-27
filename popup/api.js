@@ -1,6 +1,33 @@
 
 import { getStoredData } from './data.js';
 
+// --- NEW --- Enhanced AI Availability Logging
+// This function is exported to be called from main.js when the popup loads.
+export async function logAiAvailability() {
+    console.log("--- ScreenSage AI Diagnostic ---");
+    if (typeof window.ai === 'undefined') {
+        console.error("[AI-DIAG] ❌ `window.ai` object is not defined. The Built-in AI API is not available.");
+        return;
+    }
+    console.log("[AI-DIAG] ✅ `window.ai` object is defined.");
+
+    try {
+        const lmAvailability = await window.ai.languageModel.availability();
+        console.log(`[AI-DIAG] 💬 Language Model availability: '${lmAvailability}'`);
+    } catch (e) {
+        console.error("[AI-DIAG] ❌ Error checking Language Model availability:", e.message);
+    }
+
+    try {
+        const sAvailability = await window.ai.summarizer.availability();
+        console.log(`[AI-DIAG] ✍️ Summarizer availability: '${sAvailability}'`);
+    } catch (e) {
+        console.error("[AI-DIAG] ❌ Error checking Summarizer availability:", e.message);
+    }
+    console.log("--- End AI Diagnostic ---");
+}
+
+
 export async function summarizePage() {
     if (!window.ai) {
         throw new Error('Built-in AI not available. Please check your Chrome version and flags.');

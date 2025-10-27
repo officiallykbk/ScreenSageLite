@@ -31,5 +31,8 @@
       "resources": ["chart.min.js", "chart.umd.min.js", "assets/logo.png"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; object-src 'self'"
+  }
 }

@@ -60,13 +60,23 @@ async function commitUsageCache() {
 }
 
 async function endSession() {
-    if (!currentSession) return;
+    // --- MODIFIED --- Added more detailed logging
+    if (!currentSession) {
+        log('endSession called but no active session.');
+        return;
+    }
     const sessionToEnd = { ...currentSession };
     currentSession = null;
     const duration = Date.now() - sessionToEnd.startTime;
+
+    log(`Attempting to end session for domain: ${sessionToEnd.domain}`);
+
     if (duration > 1000 && duration < MAX_SESSION_MS) {
-        usageCache[sessionToEnd.domain] = (usageCache[sessionToEnd.domain] || 0) + duration;
-        log('✅ Session Ended, cache updated:', { domain: sessionToEnd.domain, duration: `${(duration/1000).toFixed(1)}s` });
+        const previousTime = usageCache[sessionToEnd.domain] || 0;
+        usageCache[sessionToEnd.domain] = previousTime + duration;
+        log(`✅ Session Ended. Domain: ${sessionToEnd.domain}, Duration: ${(duration/1000).toFixed(1)}s, New Total: ${(usageCache[sessionToEnd.domain]/60000).toFixed(1)}m`);
+    } else {
+        log(`👻 Session discarded. Duration ${duration}ms was too short or too long.`);
     }
 }
 
@@ -74,6 +84,8 @@ async function startSession(tab) {
     await endSession();
     const domain = getDomain(tab?.url);
     if (domain) {
+        // --- MODIFIED --- Added more detailed logging
+        log(`🚀 Starting new session for domain: ${domain} on tab ${tab.id}`);
         currentSession = {
             domain: domain,
             startTime: Date.now(),
@@ -158,4 +170,21 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
             selectionText: info.selectionText,
         });
     });
+});
+
+// --- NEW --- Message listener for real-time data requests from the popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === 'GET_USAGE_DATA') {
+        // The popup is requesting the most current, in-memory usage data.
+        // We also include the current session's data for a true real-time view.
+        const dataWithCurrentSession = { ...usageCache };
+        if (currentSession) {
+            const duration = Date.now() - currentSession.startTime;
+            dataWithCurrentSession[currentSession.domain] = (dataWithCurrentSession[currentSession.domain] || 0) + duration;
+        }
+        log('Popup requested data. Sending real-time usage cache.');
+        sendResponse(dataWithCurrentSession);
+    }
+    // Return true to indicate that the response is sent asynchronously.
+    return true;
 });
