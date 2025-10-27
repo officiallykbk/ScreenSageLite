@@ -8,7 +8,7 @@
 import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateDigest, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges, showConfirmationModal } from './ui.js';
 import { getStoredData } from './data.js';
 // --- MODIFIED --- Import the new AI logging function
-import { summarizePage, generateDigest, resetData, exportData, generateNudges, logAiAvailability } from './api.js';
+import { summarizePage, generateDigest, resetData, exportData, generateNudges, logAiAvailability, proofreadText } from './api.js';
 import { checkGoals } from './goals.js';
 
 /**
@@ -66,7 +66,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('summarizeBtn').addEventListener('click', handleSummarize);
     document.getElementById('resetBtn').addEventListener('click', handleReset);
     document.getElementById('exportBtn').addEventListener('click', handleExport);
+    document.getElementById('proofreadBtn').addEventListener('click', handleProofread);
 });
+
+async function handleProofread() {
+    const proofreadBtn = document.getElementById('proofreadBtn');
+    const inputArea = document.getElementById('proofread-input');
+    const outputContainer = document.getElementById('proofread-output');
+    const text = inputArea.value;
+
+    if (!text.trim()) {
+        showError("Please enter some text to proofread.");
+        return;
+    }
+
+    proofreadBtn.disabled = true;
+    proofreadBtn.querySelector('span').textContent = 'Thinking...';
+    hideError();
+    outputContainer.style.display = 'none';
+
+    try {
+        // This function will be created in api.js next.
+        const correctedText = await proofreadText(text);
+        outputContainer.textContent = correctedText;
+        outputContainer.style.display = 'block';
+    } catch (error) {
+        console.error('Proofread Error:', error);
+        showError(`Proofreading failed: ${error.message}`);
+    } finally {
+        proofreadBtn.disabled = false;
+        proofreadBtn.querySelector('span').textContent = 'Proofread';
+    }
+}
 
 // --- ACTION HANDLERS ---
 

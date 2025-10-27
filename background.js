@@ -60,38 +60,39 @@ async function commitUsageCache() {
 }
 
 async function endSession() {
-    // --- MODIFIED --- Added more detailed logging
     if (!currentSession) {
-        log('endSession called but no active session.');
+        log('END_SESSION: No active session to end.');
         return;
     }
     const sessionToEnd = { ...currentSession };
-    currentSession = null;
+    currentSession = null; // End session immediately
     const duration = Date.now() - sessionToEnd.startTime;
 
-    log(`Attempting to end session for domain: ${sessionToEnd.domain}`);
+    // Log the raw ending details
+    log(`END_SESSION: Ending session for domain: ${sessionToEnd.domain}, Tab ID: ${sessionToEnd.tabId}`);
 
-    if (duration > 1000 && duration < MAX_SESSION_MS) {
+    if (duration > 1500 && duration < MAX_SESSION_MS) {
         const previousTime = usageCache[sessionToEnd.domain] || 0;
         usageCache[sessionToEnd.domain] = previousTime + duration;
-        log(`✅ Session Ended. Domain: ${sessionToEnd.domain}, Duration: ${(duration/1000).toFixed(1)}s, New Total: ${(usageCache[sessionToEnd.domain]/60000).toFixed(1)}m`);
+        log(`END_SESSION: ✅ Committed. Domain: ${sessionToEnd.domain}, Duration: ${(duration/1000).toFixed(1)}s, New Total: ${(usageCache[sessionToEnd.domain]/60000).toFixed(1)}m`);
     } else {
-        log(`👻 Session discarded. Duration ${duration}ms was too short or too long.`);
+        log(`END_SESSION: 👻 Discarded. Duration ${duration}ms was too short or too long.`);
     }
 }
 
 async function startSession(tab) {
-    await endSession();
+    await endSession(); // Ensure any previous session is ended before starting a new one.
+
     const domain = getDomain(tab?.url);
     if (domain) {
-        // --- MODIFIED --- Added more detailed logging
-        log(`🚀 Starting new session for domain: ${domain} on tab ${tab.id}`);
+        log(`START_SESSION: 🚀 Starting new session for domain: ${domain} on tab ${tab.id}`);
         currentSession = {
             domain: domain,
             startTime: Date.now(),
             tabId: tab.id,
         };
-        log('🚀 Session Started:', { domain, tabId: tab.id });
+    } else {
+        log(`START_SESSION: 🚫 Cannot start session for untrackable URL: ${tab?.url}`);
     }
 }
 
@@ -107,18 +108,22 @@ async function getCurrentTab() {
 }
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  log(`EVENT: tabs.onActivated - Tab ${activeInfo.tabId} activated.`);
   const tab = await chrome.tabs.get(activeInfo.tabId);
   if (tab) await startSession(tab);
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (tab.active && changeInfo.url) {
+  if (tab.active && changeInfo.url && currentSession?.tabId === tabId) {
+    log(`EVENT: tabs.onUpdated - URL changed for active tab ${tabId}: ${changeInfo.url}`);
     await startSession(tab);
   }
 });
 
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
+  log(`EVENT: windows.onFocusChanged - Window focus changed to ID: ${windowId}`);
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
+    log('Window lost focus. Ending session and committing cache.');
     await endSession();
     await commitUsageCache();
   } else {
@@ -128,10 +133,13 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
 });
 
 chrome.idle.onStateChanged.addListener(async (newState) => {
+  log(`EVENT: idle.onStateChanged - State changed to: ${newState}`);
   if (newState === 'active') {
     const tab = await getCurrentTab();
     if (tab) await startSession(tab);
   } else {
+    // Covers 'idle' and 'locked' states
+    log('User is idle or screen is locked. Ending session and committing cache.');
     await endSession();
     await commitUsageCache();
   }

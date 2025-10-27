@@ -29,8 +29,9 @@ export async function logAiAvailability() {
 
 
 export async function summarizePage() {
-    if (!window.ai) {
-        throw new Error('Built-in AI not available. Please check your Chrome version and flags.');
+    // --- MODIFIED --- This check now gives more specific advice.
+    if (typeof window.ai === 'undefined') {
+        throw new Error('Built-in AI is not available. Ensure you are using Chrome Canary 127+ and have enabled the required flags.');
     }
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -61,8 +62,9 @@ export async function summarizePage() {
 
 
 export async function generateDigest(usageData) {
-    if (!window.ai) {
-        console.warn("Built-in AI not available. Using fallback.");
+    // --- MODIFIED --- More detailed check and warning.
+    if (typeof window.ai === 'undefined') {
+        console.warn("`window.ai` is not available. The AI digest feature will be disabled and a fallback will be used. Ensure Chrome Canary 127+ and flags are enabled.");
         return fetchFallbackQuote();
     }
 
@@ -112,8 +114,9 @@ async function fetchFallbackQuote() {
 }
 
 export async function generateNudges(usageData) {
-     if (!window.ai) {
-        console.warn("Built-in AI not available for nudges.");
+     // --- MODIFIED --- More detailed check and warning.
+     if (typeof window.ai === 'undefined') {
+        console.warn("`window.ai` is not available. The AI nudges feature is disabled. Ensure Chrome Canary 127+ and flags are enabled.");
         return "Take a short break to stretch and rest your eyes!";
     }
     try {
@@ -169,5 +172,26 @@ export async function exportData() {
     } catch (error) {
         console.error("Error exporting data:", error);
         throw new Error("Failed to export user data.");
+    }
+}
+
+// --- NEW --- Function for the in-popup proofreader
+export async function proofreadText(text) {
+    if (typeof window.ai === 'undefined') {
+        throw new Error('Built-in AI is not available. Please check your Chrome settings.');
+    }
+
+    try {
+        const availability = await window.ai.languageModel.availability();
+        if (availability !== 'readily') {
+            throw new Error(`Language model not ready. Status: ${availability}`);
+        }
+        const model = await window.ai.languageModel.create();
+        const prompt = `Proofread and correct the following text for grammar, spelling, and punctuation errors. Only return the corrected text, without any introductory phrases:\n\n"${text}"`;
+        const resultText = await model.prompt(prompt);
+        return resultText;
+    } catch (err) {
+        console.error("Proofreading Error:", err);
+        throw new Error(`AI proofreading failed: ${err.message}`);
     }
 }
