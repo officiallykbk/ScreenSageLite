@@ -156,11 +156,26 @@
                 <input type="number" id="workMinimum" min="0" placeholder="e.g., 120">
             </div>
 
-            <button id="saveGoals" class="save-button">Save Goals</button>
+            <h2 style="margin-top: 30px;">🔑 Gemini API Key</h2>
+            <p>Enter your Gemini API key to enable AI-powered summaries and insights.</p>
+            
+            <div class="goal-input">
+                <label for="apiKey">Gemini API Key</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="password" id="apiKey" placeholder="Enter your Gemini API key" style="flex-grow: 1;">
+                    <button id="toggleApiKey" style="white-space: nowrap; padding: 0 15px; background: #e2e8f0; border: 1px solid #cbd5e0; border-radius: 8px; cursor: pointer;">Show</button>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">
+                    Get your API key from <a href="https://ai.google.dev/" target="_blank" style="color: var(--accent-color);">Google AI Studio</a>
+                </p>
+            </div>
+
+            <button id="saveButton" class="save-button">Save Settings</button>
             <div id="statusMessage" class="status-message"></div>
         </div>
     </div>
-  
-  <script src="options.js"></script>
+    <script type="module" src="options.js"></script>
+             
+                
 </body>
 </html>

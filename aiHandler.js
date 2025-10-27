@@ -1,67 +1,125 @@
-import { GEMINI_API_KEY } from "./config.js";
+import { CONFIG, safeAI, getApiKey } from "./config.js";
 
-// --- Check if built-in Chrome AI is available ---
+// Standardized response format
+const DEFAULT_RESPONSE = {
+  content: "No summary available.",
+  tip: "Stay consistent — small progress adds up!"
+};
+
+/* ------------------------------
+ 🧠 1. Check if built-in Chrome AI (Gemini Nano) is available
+------------------------------ */
 async function hasBuiltInAI() {
-  if (!window.ai) {
-    return false;
-  }
+  if (!window.ai?.summarizer) return false;
+  
   try {
-    const available = await window.ai.summarizer.availability();
+    const available = await safeAI(() => window.ai.summarizer.availability());
     return available === "readily";
-  } catch {
+  } catch (error) {
+    console.warn("Built-in AI check failed:", error.message);
     return false;
   }
 }
 
-// --- Built-in AI Path (Gemini Nano) ---
+/* ------------------------------
+ ⚙️ 2. Built-in AI Path (Gemini Nano)
+------------------------------ */
 async function useBuiltInAI(domains) {
-  const summarizer = await window.ai.summarizer.create();
-  const summary = await summarizer.summarize({text: domains});
+  try {
+    const summarizer = await safeAI(() => window.ai.summarizer.create());
+    const summary = await safeAI(() => summarizer.summarize({ text: domains }));
 
-  const model = await window.ai.languageModel.create();
-  const tip = await model.prompt(
-    `Based on this browsing summary: ${domains}.
-     Give a friendly productivity tip in one line.`
-  );
+    let tip = DEFAULT_RESPONSE.tip;
+    try {
+      const model = await safeAI(() => window.ai.languageModel.create());
+      tip = await safeAI(() => 
+        model.prompt(
+          `Based on this browsing summary: ${domains}.
+          Give a friendly productivity tip in one short, casual sentence.`
+        )
+      ) || tip;
+    } catch (error) {
+      console.warn("Failed to get AI tip, using default:", error);
+    }
 
-  return {
-    summary: summary.summary,
-    tip: tip
-  };
+    return {
+      content: summary?.summary || DEFAULT_RESPONSE.content,
+      tip: tip
+    };
+  } catch (error) {
+    console.error("Built-in AI failed, falling back to Gemini:", error);
+    throw error; // Will be caught by generateReflection
+  }
 }
 
-// --- Gemini Flash 2.5 Fallback Path ---
+/* ------------------------------
+ ☁️ 3. Gemini Flash 2.5 Fallback (Cloud)
+------------------------------ */
 async function useGeminiFallback(domains) {
-  const prompt = `
-  Here's a summary of my browsing activity today:
-  ${domains}
-  Summarize my digital habits in 2–3 sentences and then suggest one short productivity tip.
-  `;
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    throw new Error("No Gemini API key found. Please set your API key in the extension options.");
+  }
 
-  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+  const prompt = `
+Here's a summary of my browsing activity today:
+${domains}
+
+Summarize my digital habits in 2–3 sentences and then suggest one short productivity tip.
+Format the response as:
+Summary: ...
+Tip: ...
+`;
+
+  const url = `${CONFIG.API.BASE_URL}${CONFIG.API.MODEL}:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-goog-api-key": GEMINI_API_KEY
     },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
-    })
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+    }),
   });
 
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini API failed (${res.status}): ${err}`);
+  }
+
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
-  const parts = text.split("\n").filter(part => part.trim() !== "");
-  return { summary: parts[0] || "Could not generate a summary.", tip: parts[1] || "" };
+  const text =
+    data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+    "No response received.";
+
+  // Smart split between summary and tip
+  const summaryMatch = text.match(/Summary:\s*([\s\S]*?)(?=Tip:|$)/i);
+  const tipMatch = text.match(/Tip:\s*(.*)/i);
+
+  const summary = summaryMatch ? summaryMatch[1].trim() : text;
+  const tip = tipMatch ? tipMatch[1].trim() : "";
+
+  return {
+    summary: summary || "Could not generate a summary.",
+    tip: tip || "Take regular breaks to stay productive!",
+  };
 }
 
-// --- Smart Dispatcher ---
+/* ------------------------------
+ 🚀 4. Smart Dispatcher
+------------------------------ */
 export async function generateReflection(domains) {
   if (await hasBuiltInAI()) {
     console.log("🧠 Using Gemini Nano (local)");
     return await useBuiltInAI(domains);
   } else {
-    console.log("☁️ Using Gemini Flash 2.5 (fallback)");
+    console.log("☁️ Using Gemini Flash 2.5 (cloud fallback)");
     return await useGeminiFallback(domains);
   }
 }

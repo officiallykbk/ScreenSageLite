@@ -15,8 +15,11 @@
     "notifications"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://generativelanguage.googleapis.com/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com"
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -32,9 +35,7 @@
       "matches": ["<all_urls>"]
     }
   ],
-"content_security_policy": {
-  "extension_pages": "script-src 'self'; object-src 'self'"
-},
+
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
