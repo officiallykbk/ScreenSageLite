@@ -61,46 +61,6 @@ export async function summarizePage() {
 }
 
 
-export async function generateDigest(usageData) {
-    // --- MODIFIED --- More detailed check and warning.
-    if (typeof window.ai === 'undefined') {
-        console.warn("`window.ai` is not available. The AI digest feature will be disabled and a fallback will be used. Ensure Chrome Canary 127+ and flags are enabled.");
-        return fetchFallbackQuote();
-    }
-
-    try {
-        const availability = await window.ai.summarizer.availability();
-        if (availability !== 'readily') {
-            throw new Error(`Summarizer not ready. Status: ${availability}`);
-        }
-
-        const { userGoals } = await getStoredData(['userGoals']);
-        let goalContext = '';
-        if (userGoals) {
-            goalContext += "\nMy personal goals are:\n";
-            if (userGoals.socialLimit) goalContext += `- Limit social media to ${userGoals.socialLimit} minutes.\n`;
-            if (userGoals.videoLimit) goalContext += `- Limit video to ${userGoals.videoLimit} minutes.\n`;
-            if (userGoals.workMinimum) goalContext += `- Spend at least ${userGoals.workMinimum} minutes on productivity.\n`;
-        }
-
-        const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
-        const domainText = Object.entries(usageData)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)
-            .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(0)} min`)
-            .join('\n');
-
-        const inputText = `Summarize the following browsing data into a concise, insightful summary. Be encouraging and non-judgmental. If personal goals are set, comment on the progress.\n\n---BEGIN DATA---\nTotal Time: ${(totalTime / 60000).toFixed(0)} minutes\nTop Sites:\n${domainText}${goalContext}\n---END DATA---`;
-
-        const summarizer = await window.ai.summarizer.create();
-        const result = await summarizer.summarize({ text: inputText });
-        return { isFallback: false, content: result.summary };
-
-    } catch (error) {
-        console.warn("AI Digest generation failed, fetching motivational quote as fallback.", error);
-        return fetchFallbackQuote();
-    }
-}
 
 async function fetchFallbackQuote() {
     try {
@@ -113,32 +73,6 @@ async function fetchFallbackQuote() {
     }
 }
 
-export async function generateNudges(usageData) {
-     // --- MODIFIED --- More detailed check and warning.
-     if (typeof window.ai === 'undefined') {
-        console.warn("`window.ai` is not available. The AI nudges feature is disabled. Ensure Chrome Canary 127+ and flags are enabled.");
-        return "Take a short break to stretch and rest your eyes!";
-    }
-    try {
-        const availability = await window.ai.languageModel.availability();
-        if (availability !== 'readily') {
-            throw new Error(`Language model not ready. Status: ${availability}`);
-        }
-
-        const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
-        const topDomain = Object.keys(usageData).length > 0 ? Object.entries(usageData).sort((a, b) => b[1] - a[1])[0][0] : 'none';
-
-        const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms. Keep the response under 280 characters.`;
-
-        const model = await window.ai.languageModel.create();
-        const fullResponse = await model.prompt(prompt);
-
-        return fullResponse;
-    } catch (err) {
-        console.error("Nudge Generation Error:", err);
-        return "Consider taking a mindful moment away from the screen.";
-    }
-}
 
 // Data management functions remain unchanged
 export async function resetData() {
