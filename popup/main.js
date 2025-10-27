@@ -8,8 +8,9 @@
 import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateDigest, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges, showConfirmationModal } from './ui.js';
 import { getStoredData } from './data.js';
 // --- MODIFIED --- Import the new AI logging function
-import { summarizePage, generateDigest, resetData, exportData, generateNudges, logAiAvailability, proofreadText } from './api.js';
+import { summarizePage, resetData, exportData, generateNudges, logAiAvailability, proofreadText } from './api.js';
 import { checkGoals } from './goals.js';
+import { generateReflection } from '../aiHandler.js';
 
 /**
  * @description Main function that runs when the popup DOM is fully loaded.
@@ -108,30 +109,30 @@ async function handleProofread() {
 async function handleDigest() {
     const digestBtn = document.getElementById('digestBtn');
     digestBtn.disabled = true;
-    digestBtn.querySelector('span').textContent = 'Generating...';
+    digestBtn.querySelector('span').textContent = 'Analyzing...';
     showLoadingState(true);
     hideError();
 
     try {
         const { usage } = await getStoredData(['usage']);
         if (!usage || Object.keys(usage).length === 0) {
-            // Even with no data, we can show a motivational quote as a fallback.
-            const digest = await generateDigest(usage);
-            updateDigest(digest);
+            showError("No browsing data to analyze yet.");
             return;
         }
-        // Generate both the digest and nudges in parallel for a faster response.
-        const [digest, nudges] = await Promise.all([
-            generateDigest(usage),
-            generateNudges(usage)
-        ]);
 
-        updateDigest(digest);
-        updateNudges(nudges);
+        const domains = Object.entries(usage)
+            .map(([domain, ms]) => `${domain}: ${(ms / 60000).toFixed(1)} min`)
+            .join('\n');
+
+        const { summary, tip } = await generateReflection(domains);
+
+        // Use the existing UI update functions
+        updateDigest({ isFallback: false, content: summary });
+        updateNudges(tip);
 
     } catch (error) {
-        console.error('Digest Error:', error);
-        showError(`Could not generate digest: ${error.message}`);
+        console.error('Reflection Error:', error);
+        showError(`Could not generate reflection: ${error.message}`);
     } finally {
         digestBtn.disabled = false;
         digestBtn.querySelector('span').textContent = 'Get Daily Digest';

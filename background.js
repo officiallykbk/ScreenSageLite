@@ -167,32 +167,40 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (!info.selectionText || !tab?.id) return;
 
-    chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['content.js'],
-    }, () => {
-        // After injecting, send a message to the content script with the task details
-        chrome.tabs.sendMessage(tab.id, {
-            type: 'CONTEXT_MENU_COMMAND',
-            menuItemId: info.menuItemId,
-            selectionText: info.selectionText,
-        });
+    // With content.js now statically injected via the manifest, we can just send
+    // a message directly without needing to programmatically inject the script.
+    chrome.tabs.sendMessage(tab.id, {
+        type: 'CONTEXT_MENU_COMMAND',
+        menuItemId: info.menuItemId,
+        selectionText: info.selectionText,
     });
 });
 
 // --- NEW --- Message listener for real-time data requests from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // This is made async to handle the race condition where the popup opens
+    // before the background script has loaded its cache from storage.
     if (request.type === 'GET_USAGE_DATA') {
-        // The popup is requesting the most current, in-memory usage data.
-        // We also include the current session's data for a true real-time view.
-        const dataWithCurrentSession = { ...usageCache };
-        if (currentSession) {
-            const duration = Date.now() - currentSession.startTime;
-            dataWithCurrentSession[currentSession.domain] = (dataWithCurrentSession[currentSession.domain] || 0) + duration;
-        }
-        log('Popup requested data. Sending real-time usage cache.');
-        sendResponse(dataWithCurrentSession);
+        (async () => {
+            await loadUsageCache(); // Ensure cache is loaded before responding.
+
+            const dataWithCurrentSession = { ...usageCache };
+            if (currentSession) {
+                const duration = Date.now() - currentSession.startTime;
+                dataWithCurrentSession[currentSession.domain] = (dataWithCurrentSession[currentSession.domain] || 0) + duration;
+            }
+            log('Popup requested data. Sending real-time usage cache.');
+            sendResponse(dataWithCurrentSession);
+        })();
     }
     // Return true to indicate that the response is sent asynchronously.
     return true;
+});
+
+// --- NEW --- Listener for when the service worker is about to be terminated.
+// This is a crucial part of the Manifest V3 lifecycle.
+chrome.runtime.onSuspend.addListener(async () => {
+    log('EVENT: runtime.onSuspend - Service worker is suspending.');
+    await endSession();
+    await commitUsageCache();
 });

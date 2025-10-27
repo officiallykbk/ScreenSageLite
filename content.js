@@ -12,8 +12,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 async function handleContextMenuAction(menuItemId, selectionText) {
-    if (!window.ai) {
+    if (typeof window.ai === 'undefined') {
         showModal('Error', 'Built-in AI is not available. Please check your Chrome settings.');
+        return;
+    }
+
+    // --- NEW --- Handle all availability states for a better UX.
+    const availability = await window.ai.languageModel.availability();
+    if (availability === 'unavailable') {
+        showModal('Error', 'The AI model is currently unavailable.');
+        return;
+    }
+    if (availability === 'after-download') {
+        showModal('⌛ Loading Model', 'Gemini Nano is downloading. This may take a moment. Please try again shortly!');
         return;
     }
 
@@ -83,6 +94,7 @@ function showModal(title, content) {
         font-weight: 600;
         font-size: 16px;
     `;
+    header.id = 'screensage-modal-header'; // --- NEW --- Add ID for direct targeting.
     header.textContent = title;
 
     const closeButton = document.createElement('button');
@@ -130,6 +142,10 @@ function showModal(title, content) {
 function updateModalContent(title, content) {
     const modal = document.getElementById('screensage-modal');
     if (!modal) return;
-    modal.querySelector('div').firstChild.textContent = title;
-    document.getElementById('screensage-modal-content').textContent = content;
+    // --- MODIFIED --- Target the header and content areas by their specific IDs.
+    const header = document.getElementById('screensage-modal-header');
+    const contentArea = document.getElementById('screensage-modal-content');
+
+    if (header) header.textContent = title;
+    if (contentArea) contentArea.textContent = content;
 }
