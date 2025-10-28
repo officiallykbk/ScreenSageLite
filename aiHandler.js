@@ -38,11 +38,13 @@ async function useGeminiFallback(domains) {
   Summarize my digital habits in 2–3 sentences and then suggest one short productivity tip.
   `;
 
-  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+  const model = 'gemini-1.5-flash-latest';
+  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-goog-api-key": GEMINI_API_KEY
     },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }]

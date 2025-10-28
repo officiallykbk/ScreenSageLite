@@ -18,56 +18,55 @@ import { generateReflection } from '../aiHandler.js';
  * and sets up all necessary event listeners for user actions.
  */
 document.addEventListener('DOMContentLoaded', async () => {
-    // --- 1. INITIAL UI SETUP & DIAGNOSTICS ---
-    logAiAvailability(); // Run the AI diagnostic check on popup open.
+    // --- 1. INITIAL UI SETUP ---
+    // These are critical for the UI to be interactive and should run first,
+    // outside of any data-loading logic that might fail.
     hideError();
     loadOwlMascot();
     initTheme();
+    addButtonRippleEffect();
+    addCardParallaxEffect();
 
-    // --- 2. LOAD INITIAL DATA & RENDER ---
-    // --- MODIFIED --- Request real-time data from the background script
-    // instead of just reading from storage. This gives an up-to-the-second view.
+    // --- 2. SETUP EVENT LISTENERS ---
+    // Wire up the buttons before loading data, so the UI is responsive.
+    document.getElementById('digestBtn').addEventListener('click', handleDigest);
+    document.getElementById('summarizeBtn').addEventListener('click', handleSummarize);
+    document.getElementById('resetBtn').addEventListener('click', handleReset);
+    document.getElementById('exportBtn').addEventListener('click', handleExport);
+    document.getElementById('proofreadBtn').addEventListener('click', handleProofread);
+
+    // --- 3. LOAD DATA & RENDER DYNAMIC CONTENT ---
+    // This is now wrapped in a try...catch to prevent a data-loading failure
+    // from breaking the entire UI.
     try {
+        logAiAvailability(); // Run the AI diagnostic check.
+
+        // Request real-time data from the background script.
         const usageData = await chrome.runtime.sendMessage({ type: 'GET_USAGE_DATA' });
-        const { streakData } = await getStoredData(['streakData']); // Streak data is still fine from storage
+        const { streakData } = await getStoredData(['streakData']);
 
         updateQuickSummary(usageData || {});
         updateStreakDisplay(streakData || { current: 0, lastActive: null });
 
-        const topDomains = Object.entries(usageData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        // Render the main chart
+        const topDomains = Object.entries(usageData || {}).sort((a, b) => b[1] - a[1]).slice(0, 10);
         if (topDomains.length > 0) {
             const labels = topDomains.map(([domain]) => domain);
             const values = topDomains.map(([, ms]) => (ms / 60000).toFixed(1));
             renderChart(labels, values);
         }
 
+        // Check and render goals, with a celebratory confetti effect on success.
+        const goalResults = await checkGoals();
+        if (goalResults && goalResults.some(goal => goal.achieved)) {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+        renderGoals(goalResults);
+
     } catch (error) {
-        console.error("Initialization Error:", error);
-        showError("Could not load initial data.");
+        console.error("Popup Initialization Error:", error);
+        showError("Could not load dashboard data.");
     }
-
-    // --- 3. CHECK & RENDER GOALS ---
-    // Evaluate user-defined goals against the browsing data and render their status.
-    // A confetti effect is triggered if any goals have been achieved.
-    const goalResults = await checkGoals();
-    if (goalResults && goalResults.some(goal => goal.achieved)) {
-        confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-        });
-    }
-    renderGoals(goalResults);
-
-    // --- 4. SETUP EVENT LISTENERS ---
-    // Attach listeners to all interactive elements in the popup, such as buttons and cards.
-    addButtonRippleEffect();
-    addCardParallaxEffect();
-    document.getElementById('digestBtn').addEventListener('click', handleDigest);
-    document.getElementById('summarizeBtn').addEventListener('click', handleSummarize);
-    document.getElementById('resetBtn').addEventListener('click', handleReset);
-    document.getElementById('exportBtn').addEventListener('click', handleExport);
-    document.getElementById('proofreadBtn').addEventListener('click', handleProofread);
 });
 
 async function handleProofread() {
