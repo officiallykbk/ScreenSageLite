@@ -8,7 +8,7 @@
 import { renderChart, updateStreakDisplay, showLoadingState, showError, hideError, updateDigest, updateQuickSummary, renderGoals, addButtonRippleEffect, loadOwlMascot, addCardParallaxEffect, initTheme, updateNudges, showConfirmationModal } from './ui.js';
 import { getStoredData } from './data.js';
 // --- MODIFIED --- Import the new AI logging function
-import { summarizePage, resetData, exportData, generateNudges, logAiAvailability, proofreadText, generateNudges } from './api.js';
+import { summarizePage, resetData, exportData, generateNudges, logAiAvailability, proofreadText } from './api.js';
 import { checkGoals } from './goals.js';
 import { generateReflection } from '../aiHandler.js';
 
