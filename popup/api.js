@@ -73,6 +73,32 @@ async function fetchFallbackQuote() {
     }
 }
 
+export async function generateNudges(usageData) {
+     // --- MODIFIED --- More detailed check and warning.
+     if (typeof window.ai === 'undefined') {
+        console.warn("`window.ai` is not available. The AI nudges feature is disabled. Ensure Chrome Canary 127+ and flags are enabled.");
+        return "Take a short break to stretch and rest your eyes!";
+    }
+    try {
+        const availability = await window.ai.languageModel.availability();
+        if (availability !== 'readily') {
+            throw new Error(`Language model not ready. Status: ${availability}`);
+        }
+
+        const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
+        const topDomain = Object.keys(usageData).length > 0 ? Object.entries(usageData).sort((a, b) => b[1] - a[1])[0][0] : 'none';
+
+        const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms. Keep the response under 280 characters.`;
+
+        const model = await window.ai.languageModel.create();
+        const fullResponse = await model.prompt(prompt);
+
+        return fullResponse;
+    } catch (err) {
+        console.error("Nudge Generation Error:", err);
+        return "Consider taking a mindful moment away from the screen.";
+    }
+}
 
 // Data management functions remain unchanged
 export async function resetData() {
