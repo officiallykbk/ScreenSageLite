@@ -1,52 +1,89 @@
 /* OPTIONS PAGE – clean, unified, popup-matching aesthetic */
 
-* { box-sizing: border-box; }
+* { 
+  box-sizing: border-box; 
+  margin: 0;
+  padding: 0;
+}
 
 :root {
   --input-bg: rgba(255, 255, 255, 0.6);
   --btn-bg: #e9eefb;
   --btn-border: #cbd5e0;
+  --transition: all 0.3s ease;
 }
 
 body, html {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
+  background: var(--background-start);
+  color: var(--text-primary);
+  line-height: 1.5;
 }
 
-/* Theme toggle button */
-.theme-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  margin-left: 8px;
-  transition: background-color 0.2s ease;
-}
-
-.theme-toggle:hover {
-  background-color: var(--btn-bg);
-}
-
-.theme-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
+/* Container */
 .container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 12px 14px;
-  gap: 12px;
+  padding: 16px 20px;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
 }
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--card-border);
+  position: relative;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  flex-grow: 1;
+  text-align: center;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  text-transform: capitalize;
+  padding: 0 44px;
+  line-height: 1.2;
+}
+
+
+
+/* Theme Toggle */
+.theme-toggle {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.theme-toggle:hover {
+  transform: translateY(calc(-50% - 1px));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
 
 /* Header */
 

@@ -2,36 +2,57 @@ import { getApiKey, setApiKey } from '../config.js';
 import { verifyApiKey } from '../aiHandler.js';
 
 // Theme management
-function initTheme() {
-    // Get the current theme from localStorage or system preference
+async function initTheme() {
+    // Get the current theme from storage or system preference
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const savedTheme = localStorage.getItem('theme');
+    
+    // Get saved theme from chrome.storage.local
+    const result = await chrome.storage.local.get('theme');
+    const savedTheme = result.theme;
+    
+    // Determine initial theme
     const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
     
     // Apply the theme
-    document.body.classList.toggle('dark-mode', isDark);
-    updateThemeIcon(isDark ? 'dark' : 'light');
+    applyTheme(isDark);
     
     // Listen for system theme changes if no saved preference
     if (!savedTheme) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
             const isSystemDark = e.matches;
-            document.body.classList.toggle('dark-mode', isSystemDark);
-            updateThemeIcon(isSystemDark ? 'dark' : 'light');
+            applyTheme(isSystemDark);
         });
     }
     
     // Toggle theme when button is clicked
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
-        themeToggle.addEventListener('click', (e) => {
+        themeToggle.addEventListener('click', async (e) => {
             e.preventDefault();
             const isDarkMode = !document.body.classList.contains('dark-mode');
-            document.body.classList.toggle('dark-mode', isDarkMode);
-            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-            updateThemeIcon(isDarkMode ? 'dark' : 'light');
+            await applyTheme(isDarkMode);
+            // Notify other parts of the extension about theme change
+            chrome.runtime.sendMessage({ 
+                type: 'THEME_CHANGED', 
+                isDark: isDarkMode 
+            });
         });
     }
+    
+    // Listen for theme changes from other parts of the extension
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === 'THEME_CHANGED') {
+            applyTheme(message.isDark);
+        }
+    });
+}
+
+// Apply theme and save preference
+async function applyTheme(isDark) {
+    document.body.classList.toggle('dark-mode', isDark);
+    updateThemeIcon(isDark ? 'dark' : 'light');
+    // Save to chrome.storage.local for persistence
+    await chrome.storage.local.set({ theme: isDark ? 'dark' : 'light' });
 }
 
 function updateThemeIcon(theme) {
