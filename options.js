@@ -32,14 +32,14 @@ function updateThemeIcon(theme) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Input elements
     const socialLimitInput = document.getElementById('social-limit');
     const videoLimitInput = document.getElementById('video-limit');
     const workMinimumInput = document.getElementById('work-minimum');
-    const saveButton = document.getElementById('saveButton');
-    const statusMessage = document.getElementById('statusMessage');
-    const apiKeyInput = document.getElementById('api-key');
+    const apiKeyInput = document.getElementById('apiKey');
     const toggleApiKeyBtn = document.getElementById('toggleApiKey');
-    const apiKeyStatus = document.getElementById('apiKeyStatus');
+    const statusMessage = document.getElementById('statusMessage');
+    const saveButton = document.getElementById('saveButton');
 
     if (toggleApiKeyBtn) {
         toggleApiKeyBtn.addEventListener('click', () => {
@@ -70,40 +70,101 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const saveSettings = async () => {
-        saveButton.disabled = true;
-        saveButton.textContent = 'Verifying...';
+        try {
+            console.log('saveSettings called');
+            
+            // Log all input elements
+            console.log('Input elements:', {
+                socialLimitInput: !!socialLimitInput,
+                videoLimitInput: !!videoLimitInput,
+                workMinimumInput: !!workMinimumInput,
+                apiKeyInput: !!apiKeyInput,
+                statusMessage: !!statusMessage,
+                saveButton: !!saveButton
+            });
 
-        const apiKey = apiKeyInput.value.trim();
-        const isVerified = await verifyApiKey(apiKey);
+            if (!saveButton) {
+                console.error('Save button not found in the DOM');
+                return;
+            }
 
-        if (isVerified) {
-            await setApiKey(apiKey);
-            showStatus('API Key Verified and Saved!', 'success');
-            apiKeyInput.classList.add('success');
-            apiKeyStatus.textContent = '✅';
-            setTimeout(() => apiKeyInput.classList.remove('success'), 1500);
-        } else {
-            showStatus('API Key is invalid.', 'error');
-            apiKeyInput.classList.add('error');
-            apiKeyStatus.textContent = '❌';
-            setTimeout(() => apiKeyInput.classList.remove('error'), 1500);
+            saveButton.disabled = true;
+            saveButton.textContent = 'Verifying...';
+
+            // Verify API key if the input exists
+            if (apiKeyInput) {
+                const apiKey = apiKeyInput.value.trim();
+                if (apiKey) {
+                    const isVerified = await verifyApiKey(apiKey);
+                    if (isVerified) {
+                        await setApiKey(apiKey);
+                        showStatus('API Key Verified and Saved!', 'success');
+                        apiKeyInput.classList.add('success');
+                        setTimeout(() => apiKeyInput.classList.remove('success'), 1500);
+                    } else {
+                        showStatus('API Key is invalid.', 'error');
+                        apiKeyInput.classList.add('error');
+                        setTimeout(() => apiKeyInput.classList.remove('error'), 1500);
+                    }
+                }
+            }
+
+            // Save goals if the inputs exist
+            const goals = {};
+            
+            if (socialLimitInput) {
+                console.log('socialLimitInput value:', socialLimitInput.value);
+                goals.socialLimit = parseInt(socialLimitInput.value, 10) || 0;
+            } else {
+                console.log('socialLimitInput is null or undefined');
+            }
+            
+            if (videoLimitInput) {
+                console.log('videoLimitInput value:', videoLimitInput.value);
+                goals.videoLimit = parseInt(videoLimitInput.value, 10) || 0;
+            } else {
+                console.log('videoLimitInput is null or undefined');
+            }
+            
+            if (workMinimumInput) {
+                console.log('workMinimumInput value:', workMinimumInput.value);
+                goals.workMinimum = parseInt(workMinimumInput.value, 10) || 0;
+            } else {
+                console.log('workMinimumInput is null or undefined');
+            }
+
+            if (Object.keys(goals).length > 0) {
+                await chrome.storage.sync.set({ userGoals: goals });
+            }
+
+        } catch (error) {
+            console.error('Error saving settings:', {
+                error: error.message,
+                stack: error.stack,
+                lineNumber: error.lineNumber,
+                columnNumber: error.columnNumber
+            });
+            showStatus('Failed to save settings. Please try again.', 'error');
+        } finally {
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save Settings';
+            }
         }
-
-        const goals = {
-            socialLimit: parseInt(socialLimitInput.value, 10) || 0,
-            videoLimit: parseInt(videoLimitInput.value, 10) || 0,
-            workMinimum: parseInt(workMinimumInput.value, 10) || 0,
-        };
-        await chrome.storage.sync.set({ userGoals: goals });
-
-        saveButton.disabled = false;
-        saveButton.textContent = 'Save Settings';
     };
 
     const showStatus = (message, type) => {
+        if (!statusMessage) {
+            console.log(`[Status: ${type}] ${message}`);
+            return;
+        }
         statusMessage.textContent = message;
         statusMessage.className = `status-message ${type}`;
-        setTimeout(() => statusMessage.className = 'status-message', 3000);
+        setTimeout(() => {
+            if (statusMessage) {
+                statusMessage.className = 'status-message';
+            }
+        }, 3000);
     };
 
     saveButton?.addEventListener('click', saveSettings);

@@ -75,13 +75,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Set initial button text
     if (apiKeyInput) {
         apiKeyInput.addEventListener('input', () => {
-            saveButton.textContent = 'Verify & Save';
+            if (saveButton) saveButton.textContent = 'Verify & Save';
         });
     }
     const toggleApiKeyBtn = document.getElementById('toggleApiKey');
 
     // Toggle API key visibility
     toggleApiKeyBtn?.addEventListener('click', () => {
+        if (!apiKeyInput) return;
         apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
         toggleApiKeyBtn.textContent = apiKeyInput.type === 'password' ? 'Show' : 'Hide';
     });
@@ -112,11 +113,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Save settings to storage
 const saveSettings = async () => {
     try {
-        saveButton.disabled = true;
-        saveButton.textContent = 'Verifying...';
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.textContent = 'Verifying...';
+        }
 
         // Verify and Save API key
-        const apiKey = apiKeyInput.value.trim();
+        const apiKey = apiKeyInput?.value?.trim() ?? '';
+
+        if (!apiKey) {
+            showStatus('Please enter an API Key before saving.', 'error');
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save Settings';
+            }
+            return;
+        }
+
         const isVerified = await verifyApiKey(apiKey);
 
         if (isVerified) {
@@ -133,9 +146,9 @@ const saveSettings = async () => {
 
         // Save goals to sync storage
         const goals = {
-            socialLimit: parseInt(socialLimitInput.value, 10) || 0,
-            videoLimit: parseInt(videoLimitInput.value, 10) || 0,
-            workMinimum: parseInt(workMinimumInput.value, 10) || 0,
+            socialLimit: parseInt(socialLimitInput?.value ?? '0', 10) || 0,
+            videoLimit: parseInt(videoLimitInput?.value ?? '0', 10) || 0,
+            workMinimum: parseInt(workMinimumInput?.value ?? '0', 10) || 0,
         };
 
         await chrome.storage.sync.set({ userGoals: goals });
@@ -144,9 +157,9 @@ const saveSettings = async () => {
         console.error('Error saving settings:', error);
         showStatus('Failed to save settings', 'error');
     } finally {
-        saveButton.disabled = false;
+        if (saveButton) saveButton.disabled = false;
         setTimeout(() => {
-            saveButton.textContent = 'Save Settings';
+            if (saveButton) saveButton.textContent = 'Save Settings';
         }, 2000); // Revert after 2 seconds
     }
 };

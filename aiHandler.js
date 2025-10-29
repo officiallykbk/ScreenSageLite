@@ -72,7 +72,8 @@ Summary: ...
 Tip: ...
 `;
 
-  const url = `${CONFIG.API.BASE_URL}${CONFIG.API.MODEL}:generateContent?key=${apiKey}`;
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+;
 
   const res = await fetch(url, {
     method: "POST",
@@ -145,24 +146,44 @@ export async function generateReflection(domains) {
 }
 
 /* ------------------------------
- 🔑 5. API Key Verification
+ 🔑 5. API Key Verification (v1 Stable)
 ------------------------------ */
 export async function verifyApiKey(apiKey) {
-    if (!apiKey) return false;
+  if (!apiKey) {
+    console.error("❌ No API key provided");
+    return false;
+  }
 
-    const url = `${CONFIG.API.BASE_URL}${CONFIG.API.MODEL}:generateContent?key=${apiKey}`;
+  // Use the stable v1 endpoint instead of v1beta
+  const url = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+  console.log("Verifying API key via:", url.replace(apiKey, "API_KEY_REDACTED"));
 
-    try {
-        const res = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: "hello" }] }],
-            }),
-        });
-        return res.ok;
-    } catch (error) {
-        console.error("API Key verification failed:", error);
-        return false;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await response.json();
+
+    // Handle network / auth errors
+    if (!response.ok) {
+      const errorMessage =
+        data?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+      console.error("❌ API key verification failed:", errorMessage);
+      return false;
     }
+
+    // Check that we actually got model data back
+    if (!data.models || !Array.isArray(data.models)) {
+      console.warn("⚠️ Unexpected API response:", data);
+      return false;
+    }
+
+    console.log("✅ API key verified successfully — Gemini models available!");
+    return true;
+  } catch (error) {
+    console.error("💥 API key verification error:", error.message);
+    return false;
+  }
 }

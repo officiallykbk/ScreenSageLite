@@ -1,5 +1,6 @@
 
 import { getStoredData } from './data.js';
+import { getApiKey } from '../config.js';
 
 // --- NEW --- Enhanced AI Availability Logging
 // This function is exported to be called from main.js when the popup loads.
@@ -29,11 +30,7 @@ export async function logAiAvailability() {
 
 
 export async function summarizePage() {
-    // --- MODIFIED --- This check now gives more specific advice.
-    if (typeof window.ai === 'undefined') {
-        throw new Error('Built-in AI is not available. Ensure you are using Chrome Canary 127+ and have enabled the required flags.');
-    }
-
+    // Get page content first - we'll need this regardless of which AI we use
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error('No active tab found');
 
@@ -46,18 +43,62 @@ export async function summarizePage() {
         throw new Error('Could not retrieve content from the page.');
     }
 
-    try {
-        const availability = await window.ai.summarizer.availability();
-        if (availability !== 'readily') {
-            throw new Error(`Summarizer not ready. Status: ${availability}`);
+    // Try built-in AI first
+    if (typeof window.ai !== 'undefined') {
+        try {
+            const availability = await window.ai.summarizer.availability();
+            if (availability === 'readily') {
+                const summarizer = await window.ai.summarizer.create();
+                const summaryResult = await summarizer.summarize({ text: result });
+                return summaryResult.summary;
+            } else if (availability === 'after-download') {
+                throw new Error('Summarizer is downloading. Please try again in a moment.');
+            }
+            // If not readily/downloading, fall through to cloud fallback
+        } catch (err) {
+            console.log("Built-in summarizer not available, trying cloud fallback...");
+            // Fall through to cloud fallback
         }
-        const summarizer = await window.ai.summarizer.create();
-        const summaryResult = await summarizer.summarize({ text: result });
-        return summaryResult.summary;
-    } catch (err) {
-        console.error("Summarization Error:", err);
-        throw new Error(`AI Summarization failed: ${err.message}`);
     }
+
+    // Cloud Fallback using Gemini API
+    console.log("☁️ Using Gemini Flash 2.5 (cloud fallback)");
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+        throw new Error("No Gemini API key found. Please set your API key in the extension options.");
+    }
+
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+    const prompt = `Summarize this text in 2-3 concise sentences, focusing on the main points:\n\n${result}`;
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            contents: [{
+                role: "user",
+                parts: [{ text: prompt }]
+            }]
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Cloud summarization failed (${response.status}): ${error}`);
+    }
+
+    const data = await response.json();
+    const summary = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    
+    if (!summary) {
+        console.warn("Cloud API failed to generate summary, falling back to quote");
+        const fallback = await fetchFallbackQuote();
+        return `Unable to summarize page content. Here's a thought for reflection:\n\n"${fallback.quote}" — ${fallback.author}`;
+    }
+
+    return summary;
 }
 
 
@@ -74,29 +115,63 @@ async function fetchFallbackQuote() {
 }
 
 export async function generateNudges(usageData) {
-     // --- MODIFIED --- More detailed check and warning.
-     if (typeof window.ai === 'undefined') {
-        console.warn("`window.ai` is not available. The AI nudges feature is disabled. Ensure Chrome Canary 127+ and flags are enabled.");
-        return "Take a short break to stretch and rest your eyes!";
+    // Try built-in AI first
+    if (typeof window.ai !== 'undefined') {
+        try {
+            const availability = await window.ai.languageModel.availability();
+            if (availability === 'readily') {
+                const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
+                const topDomain = Object.keys(usageData).length > 0 ? Object.entries(usageData).sort((a, b) => b[1] - a[1])[0][0] : 'none';
+
+                const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms. Keep the response under 280 characters.`;
+
+                const model = await window.ai.languageModel.create();
+                const fullResponse = await model.prompt(prompt);
+                return fullResponse;
+            }
+        } catch (err) {
+            console.warn("Built-in AI nudges failed, trying cloud fallback:", err);
+        }
     }
+
+    // Try cloud API fallback
     try {
-        const availability = await window.ai.languageModel.availability();
-        if (availability !== 'readily') {
-            throw new Error(`Language model not ready. Status: ${availability}`);
+        const apiKey = await getApiKey();
+        if (!apiKey) {
+            throw new Error("No API key available for cloud fallback");
         }
 
         const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
         const topDomain = Object.keys(usageData).length > 0 ? Object.entries(usageData).sort((a, b) => b[1] - a[1])[0][0] : 'none';
+        
+        const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+        const prompt = `Based on browsing data (${(totalTime / 60000).toFixed(0)} mins, mainly on ${topDomain}), give one short, friendly productivity tip.`;
 
-        const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms. Keep the response under 280 characters.`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{
+                    role: "user",
+                    parts: [{ text: prompt }]
+                }]
+            })
+        });
 
-        const model = await window.ai.languageModel.create();
-        const fullResponse = await model.prompt(prompt);
+        if (!response.ok) {
+            throw new Error(`Cloud API failed: ${response.status}`);
+        }
 
-        return fullResponse;
+        const data = await response.json();
+        const nudge = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (nudge) return nudge;
+        throw new Error("Empty response from cloud API");
+
     } catch (err) {
-        console.error("Nudge Generation Error:", err);
-        return "Consider taking a mindful moment away from the screen.";
+        console.warn("Cloud nudges failed, using quote fallback:", err);
+        // Final fallback - use an inspirational quote
+        const fallback = await fetchFallbackQuote();
+        return `"${fallback.quote}" — ${fallback.author}`;
     }
 }
 
@@ -137,21 +212,55 @@ export async function exportData() {
 
 // --- NEW --- Function for the in-popup proofreader
 export async function proofreadText(text) {
-    if (typeof window.ai === 'undefined') {
-        throw new Error('Built-in AI is not available. Please check your Chrome settings.');
+    // Try built-in AI first
+    if (typeof window.ai !== 'undefined') {
+        try {
+            const availability = await window.ai.languageModel.availability();
+            if (availability === 'readily') {
+                const model = await window.ai.languageModel.create();
+                const prompt = `Proofread and correct the following text for grammar, spelling, and punctuation errors. Only return the corrected text, without any introductory phrases:\n\n"${text}"`;
+                const resultText = await model.prompt(prompt);
+                return resultText;
+            }
+        } catch (err) {
+            console.warn("Built-in AI proofreading failed, trying cloud fallback:", err);
+        }
     }
 
+    // Try cloud API fallback
     try {
-        const availability = await window.ai.languageModel.availability();
-        if (availability !== 'readily') {
-            throw new Error(`Language model not ready. Status: ${availability}`);
+        const apiKey = await getApiKey();
+        if (!apiKey) {
+            throw new Error("No API key available for cloud fallback");
         }
-        const model = await window.ai.languageModel.create();
-        const prompt = `Proofread and correct the following text for grammar, spelling, and punctuation errors. Only return the corrected text, without any introductory phrases:\n\n"${text}"`;
-        const resultText = await model.prompt(prompt);
-        return resultText;
+
+        const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+        const prompt = `Proofread and correct this text for grammar, spelling, and punctuation. Return only the corrected text:\n\n${text}`;
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{
+                    role: "user",
+                    parts: [{ text: prompt }]
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Cloud API failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const corrected = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (corrected) return corrected;
+        throw new Error("Empty response from cloud API");
+
     } catch (err) {
-        console.error("Proofreading Error:", err);
-        throw new Error(`AI proofreading failed: ${err.message}`);
+        console.warn("Cloud proofreading failed, using quote fallback:", err);
+        // Final fallback - return original text with a quote
+        const fallback = await fetchFallbackQuote();
+        return `${text}\n\nNote: Proofreading unavailable. Here's a thought instead:\n"${fallback.quote}" — ${fallback.author}`;
     }
 }

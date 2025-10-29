@@ -12,31 +12,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 async function handleContextMenuAction(menuItemId, selectionText) {
-    if (typeof window.ai === 'undefined') {
-        showModal('Error', 'Built-in AI is not available. Please check your Chrome settings.');
-        return;
-    }
-
-    // --- NEW --- Handle all availability states for a better UX.
-    const availability = await window.ai.languageModel.availability();
-    if (availability === 'unavailable') {
-        showModal('Error', 'The AI model is currently unavailable.');
-        return;
-    }
-    if (availability === 'after-download') {
-        showModal('⌛ Loading Model', 'Gemini Nano is downloading. This may take a moment. Please try again shortly!');
-        return;
-    }
-
     let title = '';
-    let prompt = '';
 
     if (menuItemId === "proofreadText") {
         title = '✅ Proofread Text';
-        prompt = `Proofread and correct the following text for grammar and spelling errors. Only return the corrected text, without any introductory phrases:\n\n"${selectionText}"`;
     } else if (menuItemId === "rewriteText") {
         title = '✍️ Rewritten Text';
-        prompt = `Rewrite the following text to be clearer and more concise, while retaining the original meaning. Only return the rewritten text, without any introductory phrases:\n\n"${selectionText}"`;
     } else {
         return; // Unknown command
     }
@@ -44,17 +25,27 @@ async function handleContextMenuAction(menuItemId, selectionText) {
     showModal(title, '🧠 Thinking...'); // Show loading state
 
     try {
-        const availability = await window.ai.languageModel.availability();
-        if (availability !== 'readily') {
-            throw new Error(`Language model not ready. Status: ${availability}`);
+        // Send request to background script
+        const response = await chrome.runtime.sendMessage({
+            type: 'PROCESS_TEXT',
+            menuItemId,
+            selectionText
+        });
+
+        if (response.error) {
+            throw new Error(response.error);
         }
-        const model = await window.ai.languageModel.create();
-        const resultText = await model.prompt(prompt);
-        updateModalContent(title, resultText);
+
+        // If it's a cloud response, add indicator
+        const finalTitle = response.isCloud ? title + ' (Cloud)' : title;
+        updateModalContent(finalTitle, response.text);
 
     } catch (err) {
-        console.error("Content Script AI Error:", err);
-        updateModalContent('Error', `Could not perform AI action: ${err.message}`);
+        console.warn("Text processing failed:", err);
+        updateModalContent(
+            'Note 💭',
+            `AI assistance is currently unavailable.\n\n${err.message}`
+        );
     }
 }
 

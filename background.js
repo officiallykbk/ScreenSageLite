@@ -178,14 +178,81 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     });
 });
 
-// --- NEW --- Message listener for real-time data requests from the popup
+async function processWithBuiltInAI(tab, prompt) {
+    try {
+        // Execute in the context of the tab to access window.ai
+        const [{result: aiResult}] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: async (promptText) => {
+                if (typeof window.ai === 'undefined') return { error: 'Built-in AI not available' };
+                
+                try {
+                    const availability = await window.ai.languageModel.availability();
+                    if (availability !== 'readily') {
+                        return { error: `Language model not ready. Status: ${availability}` };
+                    }
+                    
+                    const model = await window.ai.languageModel.create();
+                    const response = await model.prompt(promptText);
+                    return { text: response };
+                } catch (err) {
+                    return { error: err.message };
+                }
+            },
+            args: [prompt]
+        });
+
+        if (aiResult.error) throw new Error(aiResult.error);
+        return { text: aiResult.text, isCloud: false };
+    } catch (err) {
+        throw err;
+    }
+}
+
+async function processWithCloudAI(prompt) {
+    const { apiKey } = await chrome.storage.sync.get('apiKey');
+    if (!apiKey) {
+        throw new Error('No API key available for cloud processing');
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            contents: [{
+                role: "user",
+                parts: [{ text: prompt }]
+            }]
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`Cloud API failed (${response.status})`);
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!text) throw new Error('Empty response from cloud API');
+    
+    return { text, isCloud: true };
+}
+
+async function getFallbackQuote() {
+    try {
+        const response = await fetch('https://api.quotable.io/random');
+        const data = await response.json();
+        return `Here's a thought for reflection:\n\n"${data.content}"\n— ${data.author}`;
+    } catch {
+        return 'Here\'s a thought for reflection:\n\n"The journey of a thousand miles begins with a single step."\n— Lao Tzu';
+    }
+}
+
+// --- Message listeners for popup and content script requests
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    // This is made async to handle the race condition where the popup opens
-    // before the background script has loaded its cache from storage.
     if (request.type === 'GET_USAGE_DATA') {
         (async () => {
-            await loadUsageCache(); // Ensure cache is loaded before responding.
-
+            await loadUsageCache();
             const dataWithCurrentSession = { ...usageCache };
             if (currentSession) {
                 const duration = Date.now() - currentSession.startTime;
@@ -194,9 +261,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             log('Popup requested data. Sending real-time usage cache.');
             sendResponse(dataWithCurrentSession);
         })();
+        return true;
     }
-    // Return true to indicate that the response is sent asynchronously.
-    return true;
+
+    if (request.type === 'PROCESS_TEXT') {
+        (async () => {
+            try {
+                let prompt;
+                if (request.menuItemId === "proofreadText") {
+                    prompt = `Proofread and correct the following text for grammar and spelling errors. Only return the corrected text, without any introductory phrases:\n\n"${request.selectionText}"`;
+                } else if (request.menuItemId === "rewriteText") {
+                    prompt = `Rewrite the following text to be clearer and more concise, while retaining the original meaning. Only return the rewritten text, without any introductory phrases:\n\n"${request.selectionText}"`;
+                }
+
+                // Try built-in AI first
+                try {
+                    const result = await processWithBuiltInAI(sender.tab, prompt);
+                    sendResponse(result);
+                    return;
+                } catch (err) {
+                    console.warn('Built-in AI failed, trying cloud:', err);
+                }
+
+                // Try cloud API
+                try {
+                    const result = await processWithCloudAI(prompt);
+                    sendResponse(result);
+                    return;
+                } catch (err) {
+                    console.warn('Cloud AI failed, using fallback:', err);
+                }
+
+                // Final fallback
+                const fallbackText = await getFallbackQuote();
+                sendResponse({ text: fallbackText, isCloud: false });
+
+            } catch (error) {
+                sendResponse({ error: error.message });
+            }
+        })();
+        return true;
+    }
 });
 
 // --- NEW --- Listener for when the service worker is about to be terminated.
