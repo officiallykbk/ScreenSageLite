@@ -124,11 +124,9 @@ export async function generateReflection(domains) {
   }
 }
 
-/**
- * Verifies a Gemini API key by making a lightweight test call.
- * @param {string} apiKey - The API key to verify.
- * @returns {Promise<boolean>} - True if the key is valid, false otherwise.
- */
+/* ------------------------------
+ 🔑 5. API Key Verification
+------------------------------ */
 export async function verifyApiKey(apiKey) {
     if (!apiKey) return false;
 

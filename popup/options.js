@@ -1,4 +1,4 @@
-import { getApiKey, setApiKey } from '../config.js';
+import { getApiKey, setApiKey } from './config.js';
 import { verifyApiKey } from '../aiHandler.js';
 
 // Theme management
@@ -50,13 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const saveButton = document.getElementById('saveButton');
     const statusMessage = document.getElementById('statusMessage');
     const apiKeyInput = document.getElementById('apiKey');
-
-    // Set initial button text
-    if (apiKeyInput) {
-        apiKeyInput.addEventListener('input', () => {
-            saveButton.textContent = 'Verify & Save';
-        });
-    }
     const toggleApiKeyBtn = document.getElementById('toggleApiKey');
 
     // Toggle API key visibility
@@ -81,6 +74,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const apiKey = await getApiKey();
             if (apiKey) {
                 apiKeyInput.value = apiKey;
+                document.getElementById('apiKeyStatus').textContent = '✅';
+            } else {
+                document.getElementById('apiKeyStatus').textContent = '❌';
             }
         } catch (error) {
             console.error('Error loading settings:', error);
@@ -101,11 +97,15 @@ const saveSettings = async () => {
         if (isVerified) {
             await setApiKey(apiKey);
             showStatus('API Key Verified and Saved!', 'success');
+            apiKeyInput.classList.add('success');
             setTimeout(() => {
+                apiKeyInput.classList.remove('success');
                 saveButton.textContent = 'API Key Verified';
-            }, 500);
+            }, 1500);
         } else {
             showStatus('API Key is invalid. Please check and try again.', 'error');
+            apiKeyInput.classList.add('error');
+            setTimeout(() => apiKeyInput.classList.remove('error'), 1500);
             saveButton.textContent = 'Verification Failed';
             return; // Stop execution if key is invalid
         }
