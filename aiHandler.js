@@ -123,3 +123,26 @@ export async function generateReflection(domains) {
     return await useGeminiFallback(domains);
   }
 }
+
+/* ------------------------------
+ 🔑 5. API Key Verification
+------------------------------ */
+export async function verifyApiKey(apiKey) {
+    if (!apiKey) return false;
+
+    const url = `${CONFIG.API.BASE_URL}${CONFIG.API.MODEL}:generateContent?key=${apiKey}`;
+
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: "hello" }] }],
+            }),
+        });
+        return res.ok;
+    } catch (error) {
+        console.error("API Key verification failed:", error);
+        return false;
+    }
+}

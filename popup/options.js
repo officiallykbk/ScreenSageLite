@@ -1,4 +1,5 @@
-import { getApiKey, setApiKey } from './config.js';
+import { getApiKey, setApiKey } from '../config.js';
+import { verifyApiKey } from '../aiHandler.js';
 
 // Theme management
 function initTheme() {
@@ -49,13 +50,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const saveButton = document.getElementById('saveButton');
     const statusMessage = document.getElementById('statusMessage');
     const apiKeyInput = document.getElementById('apiKey');
+
+    // Set initial button text
+    if (apiKeyInput) {
+        apiKeyInput.addEventListener('input', () => {
+            saveButton.textContent = 'Verify & Save';
+        });
+    }
     const toggleApiKeyBtn = document.getElementById('toggleApiKey');
 
     // Toggle API key visibility
     toggleApiKeyBtn?.addEventListener('click', () => {
-        const type = apiKeyInput.type === 'password' ? 'text' : 'password';
-        apiKeyInput.type = type;
-        toggleApiKeyBtn.textContent = type === 'password' ? 'Show' : 'Hide';
+        apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+        toggleApiKeyBtn.textContent = apiKeyInput.type === 'password' ? 'Show' : 'Hide';
     });
 
     // Load settings from storage
@@ -82,31 +89,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Save settings to storage
-    const saveSettings = async () => {
-        try {
-            saveButton.disabled = true;
-            saveButton.textContent = 'Saving...';
+const saveSettings = async () => {
+    try {
+        saveButton.disabled = true;
+        saveButton.textContent = 'Verifying...';
 
-            // Save API key
-            await setApiKey(apiKeyInput.value.trim());
-            
-            // Save goals to sync storage
-            const goals = {
-                socialLimit: parseInt(socialLimitInput.value, 10) || 0,
-                videoLimit: parseInt(videoLimitInput.value, 10) || 0,
-                workMinimum: parseInt(workMinimumInput.value, 10) || 0,
-            };
+        // Verify and Save API key
+        const apiKey = apiKeyInput.value.trim();
+        const isVerified = await verifyApiKey(apiKey);
 
-            await chrome.storage.sync.set({ userGoals: goals });
-            showStatus('Settings saved successfully!', 'success');
-        } catch (error) {
-            console.error('Error saving settings:', error);
-            showStatus('Failed to save settings', 'error');
-        } finally {
-            saveButton.disabled = false;
-            saveButton.textContent = 'Save Settings';
+        if (isVerified) {
+            await setApiKey(apiKey);
+            showStatus('API Key Verified and Saved!', 'success');
+            setTimeout(() => {
+                saveButton.textContent = 'API Key Verified';
+            }, 500);
+        } else {
+            showStatus('API Key is invalid. Please check and try again.', 'error');
+            saveButton.textContent = 'Verification Failed';
+            return; // Stop execution if key is invalid
         }
-    };
+
+        // Save goals to sync storage
+        const goals = {
+            socialLimit: parseInt(socialLimitInput.value, 10) || 0,
+            videoLimit: parseInt(videoLimitInput.value, 10) || 0,
+            workMinimum: parseInt(workMinimumInput.value, 10) || 0,
+        };
+
+        await chrome.storage.sync.set({ userGoals: goals });
+        showStatus('Settings saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showStatus('Failed to save settings', 'error');
+    } finally {
+        saveButton.disabled = false;
+        setTimeout(() => {
+            saveButton.textContent = 'Save Settings';
+        }, 2000); // Revert after 2 seconds
+    }
+};
 
     // Show status message
     const showStatus = (message, type = 'info') => {

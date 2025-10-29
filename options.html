@@ -6,9 +6,9 @@
   <title>ScreenSage Settings</title>
   <link rel="stylesheet" href="popup/popup.css">
   <link rel="stylesheet" href="popup/dark-mode.css">
-  <link rel="stylesheet" href="popup/settings.css">
+  <link rel="stylesheet" href="popup/options.css">
 </head>
-<body>
+<body class="dark-mode">
   <div class="container">
     <header class="header">
       <a href="popup/popup.html" class="back-link">&larr; Back</a>
@@ -47,7 +47,7 @@
           <div class="form-group">
             <label for="api-key">Gemini API Key</label>
             <div style="display: flex; gap: 10px;">
-              <input type="password" id="api-key" name="api-key" placeholder="Enter your Gemini API key" style="flex-grow: 1;">
+              <input type="password" id="api-key" name="api-key" placeholder="Enter your Gemini API key" style="flex-grow: 1;" oncopy="return false">
               <button id="toggleApiKey" type="button">Show</button>
             </div>
             <p class="hint">
