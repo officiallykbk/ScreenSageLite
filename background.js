@@ -147,10 +147,12 @@ chrome.idle.onStateChanged.addListener(async (newState) => {
 
 // --- INITIALIZATION, ALARMS & CONTEXT MENUS ---
 chrome.runtime.onInstalled.addListener(async () => {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({ id: "proofreadText", title: "Polish with ScreenSage", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "rewriteText", title: "Rewrite with ScreenSage", contexts: ["selection"] });
+  });
   chrome.idle.setDetectionInterval(IDLE_DETECTION_SECONDS);
   chrome.alarms.create('commit-cache', { periodInMinutes: COMMIT_INTERVAL_MINUTES });
-  chrome.contextMenus.create({ id: "proofreadText", title: "Polish with ScreenSage", contexts: ["selection"] });
-  chrome.contextMenus.create({ id: "rewriteText", title: "Rewrite with ScreenSage", contexts: ["selection"] });
 });
 
 chrome.runtime.onStartup.addListener(() => {

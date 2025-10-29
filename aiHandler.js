@@ -10,15 +10,16 @@ const DEFAULT_RESPONSE = {
  🧠 1. Check if built-in Chrome AI (Gemini Nano) is available
 ------------------------------ */
 async function hasBuiltInAI() {
-  if (!window.ai?.summarizer) return false;
-  
-  try {
-    const available = await safeAI(() => window.ai.summarizer.availability());
-    return available === "readily";
-  } catch (error) {
-    console.warn("Built-in AI check failed:", error.message);
-    return false;
-  }
+    if (typeof window.ai === 'undefined') {
+        return 'unavailable';
+    }
+    try {
+        const availability = await window.ai.languageModel.availability();
+        return availability;
+    } catch (error) {
+        console.warn("Built-in AI check failed:", error.message);
+        return 'unavailable';
+    }
 }
 
 /* ------------------------------
@@ -115,13 +116,32 @@ Tip: ...
  🚀 4. Smart Dispatcher
 ------------------------------ */
 export async function generateReflection(domains) {
-  if (await hasBuiltInAI()) {
-    console.log("🧠 Using Gemini Nano (local)");
-    return await useBuiltInAI(domains);
-  } else {
+    const availability = await hasBuiltInAI();
+
+    if (availability === 'readily') {
+        console.log("🧠 Using Gemini Nano (local)");
+        return await useBuiltInAI(domains);
+    }
+
+    if (availability === 'after-download') {
+        return {
+            content: "⌛ Gemini Nano is downloading. This may take a moment. Please try again shortly!",
+            tip: "In the meantime, take a short break to rest your eyes."
+        };
+    }
+
     console.log("☁️ Using Gemini Flash 2.5 (cloud fallback)");
-    return await useGeminiFallback(domains);
-  }
+    try {
+        return await useGeminiFallback(domains);
+    } catch (error) {
+        if (error.message.includes("No Gemini API key")) {
+            return {
+                content: "The built-in AI is not available, and no cloud API key has been set.",
+                tip: "Please add your Gemini API key in the settings to enable cloud-based summaries."
+            };
+        }
+        throw error;
+    }
 }
 
 /* ------------------------------
