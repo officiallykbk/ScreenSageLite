@@ -1,4 +1,4 @@
-/* OPTIONS PAGE – clean, unified, popup-matching aesthetic */
+/* SETTINGS PAGE – clean, unified, popup-matching aesthetic */
 
 * { 
   box-sizing: border-box; 
@@ -103,7 +103,7 @@ body, html {
 
 header h1 { 
     text-align: center; 
-    font-size: 2.5rem;
+    font-size: 2rem;
     width: 100%; /* Ensure it takes full width to center */
  }
 
@@ -276,4 +276,15 @@ button,
 @keyframes slide-up {
   from { transform: translateY(10px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* --- NEW --- API Key Input Feedback Styles */
+input#api-key.success {
+    border-color: #10b981; /* Green-500 */
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.1);
+}
+
+input#api-key.error {
+    border-color: #ef4444; /* Red-500 */
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.1);
 }

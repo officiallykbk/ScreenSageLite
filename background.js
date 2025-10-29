@@ -7,14 +7,15 @@
  * @version 2.2 - Restored Tracking Logic & Standardized AI
  */
 
-import { CONFIG } from './config.js';
-
 // --- GLOBAL STATE ---
 let currentSession = null;
 let usageCache = {};
 
 // --- CONSTANTS ---
-const DEBUG = false;
+const DEBUG = true;
+const MAX_SESSION_MS = 12 * 60 * 60 * 1000;
+const IDLE_DETECTION_SECONDS = 60;
+const COMMIT_INTERVAL_MINUTES = 5;
 
 function log(...args) {
   if (DEBUG) console.log(`[${new Date().toLocaleTimeString()}] ScreenSage:`, ...args);
@@ -37,9 +38,7 @@ function getDomain(url) {
   } catch (e) { return null; }
 }
 
-/**
- * @description Loads the usage data from local storage into the in-memory cache.
- */
+// --- SESSION & DATA MANAGEMENT ---
 async function loadUsageCache() {
     try {
         const { usage = {} } = await chrome.storage.local.get('usage');
@@ -50,9 +49,6 @@ async function loadUsageCache() {
     }
 }
 
-/**
- * @description Saves the in-memory usage cache to local storage.
- */
 async function commitUsageCache() {
     if (Object.keys(usageCache).length === 0) return;
     try {
@@ -63,9 +59,6 @@ async function commitUsageCache() {
     }
 }
 
-/**
- * @description Ends the current browsing session and commits the time spent to the usage cache.
- */
 async function endSession() {
     if (!currentSession) {
         log('END_SESSION: No active session to end.');
@@ -78,7 +71,7 @@ async function endSession() {
     // Log the raw ending details
     log(`END_SESSION: Ending session for domain: ${sessionToEnd.domain}, Tab ID: ${sessionToEnd.tabId}`);
 
-    if (duration > 1500 && duration < CONFIG.BEHAVIOR.MAX_SESSION_MS) {
+    if (duration > 1500 && duration < MAX_SESSION_MS) {
         const previousTime = usageCache[sessionToEnd.domain] || 0;
         usageCache[sessionToEnd.domain] = previousTime + duration;
         log(`END_SESSION: ✅ Committed. Domain: ${sessionToEnd.domain}, Duration: ${(duration/1000).toFixed(1)}s, New Total: ${(usageCache[sessionToEnd.domain]/60000).toFixed(1)}m`);
@@ -87,10 +80,6 @@ async function endSession() {
     }
 }
 
-/**
- * @description Starts a new browsing session for the given tab.
- * @param {chrome.tabs.Tab} tab - The tab to start a session for.
- */
 async function startSession(tab) {
     await endSession(); // Ensure any previous session is ended before starting a new one.
 
@@ -107,10 +96,7 @@ async function startSession(tab) {
     }
 }
 
-/**
- * @description Gets the currently active tab.
- * @returns {Promise<chrome.tabs.Tab|null>} - The active tab, or null if none is found.
- */
+// --- CHROME EVENT LISTENERS ---
 async function getCurrentTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -165,13 +151,13 @@ chrome.runtime.onInstalled.addListener(async () => {
     chrome.contextMenus.create({ id: "proofreadText", title: "Polish with ScreenSage", contexts: ["selection"] });
     chrome.contextMenus.create({ id: "rewriteText", title: "Rewrite with ScreenSage", contexts: ["selection"] });
   });
-  chrome.idle.setDetectionInterval(CONFIG.BEHAVIOR.IDLE_DETECTION_SECONDS);
-  chrome.alarms.create('commit-cache', { periodInMinutes: CONFIG.BEHAVIOR.COMMIT_INTERVAL_MINUTES });
+  chrome.idle.setDetectionInterval(IDLE_DETECTION_SECONDS);
+  chrome.alarms.create('commit-cache', { periodInMinutes: COMMIT_INTERVAL_MINUTES });
 });
 
 chrome.runtime.onStartup.addListener(() => {
   loadUsageCache();
-  chrome.alarms.create('commit-cache', { periodInMinutes: CONFIG.BEHAVIOR.COMMIT_INTERVAL_MINUTES });
+  chrome.alarms.create('commit-cache', { periodInMinutes: COMMIT_INTERVAL_MINUTES });
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
