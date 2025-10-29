@@ -1,9 +1,32 @@
 body.dark-mode {
+    /* Background */
     --background-start: #2d3748;
     --background-end: #1a202c;
-    --card-background: rgba(45, 55, 72, 0.4);
+    
+    /* Cards */
+    --card-background: rgba(45, 55, 72, 0.6);
     --card-border: rgba(255, 255, 255, 0.1);
+    
+    /* Text */
     --text-primary: #e2e8f0;
     --text-secondary: #a0aec0;
+    
+    /* UI Elements */
     --icon-color: #a0aec0;
+    --accent-color: #667eea;
+    --accent-color-hover: #5a67d8;
+    --input-bg: rgba(255, 255, 255, 0.1);
+    --btn-bg: rgba(74, 85, 104, 0.4);
+    --btn-border: rgba(255, 255, 255, 0.1);
+    
+    /* Form Elements */
+    --input-border: rgba(255, 255, 255, 0.2);
+    --input-text: #e2e8f0;
+    --input-placeholder: #a0aec0;
+    
+    /* Shadows */
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    
+    background: linear-gradient(135deg, var(--background-start), var(--background-end));
+    color: var(--text-primary);
 }

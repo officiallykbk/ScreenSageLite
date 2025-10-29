@@ -1,5 +1,46 @@
 import { getApiKey, setApiKey } from './config.js';
 
+// Theme management
+function initTheme() {
+    // Get the current theme from localStorage or system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedTheme = localStorage.getItem('theme');
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    // Apply the theme
+    document.body.classList.toggle('dark-mode', isDark);
+    updateThemeIcon(isDark ? 'dark' : 'light');
+    
+    // Listen for system theme changes if no saved preference
+    if (!savedTheme) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            const isSystemDark = e.matches;
+            document.body.classList.toggle('dark-mode', isSystemDark);
+            updateThemeIcon(isSystemDark ? 'dark' : 'light');
+        });
+    }
+    
+    // Toggle theme when button is clicked
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isDarkMode = !document.body.classList.contains('dark-mode');
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            updateThemeIcon(isDarkMode ? 'dark' : 'light');
+        });
+    }
+}
+
+function updateThemeIcon(theme) {
+    const themeIcon = document.querySelector('.theme-icon');
+    if (themeIcon) {
+        themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        themeIcon.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // DOM Elements
     const socialLimitInput = document.getElementById('socialLimit');
@@ -98,5 +139,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveButton?.addEventListener('click', saveSettings);
     
     // Initialize
+    initTheme();
     loadSettings();
 });

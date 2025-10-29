@@ -1,181 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScreenSage Lite - Settings</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --font-family: 'Inter', sans-serif;
-            --background-start: #e0eafc;
-            --background-end: #cfdef3;
-            --card-background: rgba(255, 255, 255, 0.6);
-            --card-border: rgba(255, 255, 255, 0.8);
-            --text-primary: #2d3748;
-            --text-secondary: #718096;
-            --accent-color: #667eea;
-            --accent-color-hover: #5a67d8;
-            --input-border: #cbd5e0;
-        }
-
-        body {
-            font-family: var(--font-family);
-            background: linear-gradient(135deg, var(--background-start), var(--background-end));
-            color: var(--text-primary);
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-
-        .container {
-            max-width: 500px;
-            margin: 40px auto;
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .logo {
-            width: 48px;
-            height: 48px;
-            margin-right: 15px;
-        }
-
-        h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin: 0;
-        }
-
-        .settings-card {
-            background: var(--card-background);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .settings-card h2 {
-            margin: 0 0 10px 0;
-            font-size: 1.2rem;
-            color: var(--text-primary);
-        }
-
-        .settings-card p {
-            margin: 0 0 25px 0;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .goal-input {
-            margin-bottom: 20px;
-        }
-
-        .goal-input label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .goal-input input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            background-color: rgba(255, 255, 255, 0.5);
-            transition: border-color 0.2s;
-        }
-
-        .goal-input input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
-        .save-button {
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            width: 100%;
-            transition: background-color 0.2s;
-        }
-
-        .save-button:hover {
-            background: var(--accent-color-hover);
-        }
-
-        .status-message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            text-align: center;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScreenSage Settings</title>
+  <link rel="stylesheet" href="popup/popup.css">
+  <link rel="stylesheet" href="popup/dark-mode.css">
+  <link rel="stylesheet" href="popup/settings.css">
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <img src="assets/logo.png" alt="ScreenSage Logo" class="logo">
-            <h1>ScreenSage Lite Settings</h1>
-        </header>
+  <div class="container">
+    <header class="header">
+      <a href="popup/popup.html" class="back-link">&larr; Back</a>
+      <h1>Settings</h1>
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+        <span class="theme-icon">🌙</span>
+      </button>
+    </header>
 
-        <div class="settings-card">
-            <h2>🎯 Daily Goals</h2>
-            <p>Set daily time limits for different categories to get personalized feedback.</p>
+    <main>
+      <div class="card">
+        <h2>🎯 Manage Daily Goals</h2>
+        <p>Set daily time limits for different activities to stay balanced and productive.</p>
 
-            <div class="goal-input">
-                <label for="socialLimit">Social Media Limit (minutes per day)</label>
-                <input type="number" id="socialLimit" min="0" placeholder="e.g., 60">
+        <form id="goals-form">
+          <div class="form-group">
+            <label for="social-limit">Max Social Media Time (minutes per day)</label>
+            <input type="number" id="social-limit" name="social-limit" min="0" placeholder="e.g., 60">
+          </div>
+
+          <div class="form-group">
+            <label for="video-limit">Max Video Time (minutes per day)</label>
+            <input type="number" id="video-limit" name="video-limit" min="0" placeholder="e.g., 90">
+          </div>
+
+          <div class="form-group">
+            <label for="work-minimum">Min Productivity Time (minutes per day)</label>
+            <input type="number" id="work-minimum" name="work-minimum" min="0" placeholder="e.g., 120">
+          </div>
+
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--card-border);">
+
+          <h2>🔑 Gemini API Key</h2>
+          <p>Enter your Gemini API key to enable AI-powered summaries and insights.</p>
+
+          <div class="form-group">
+            <label for="api-key">Gemini API Key</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="password" id="api-key" name="api-key" placeholder="Enter your Gemini API key" style="flex-grow: 1;">
+              <button id="toggleApiKey" type="button">Show</button>
             </div>
+            <p class="hint">
+              Get your API key from
+              <a href="https://aistudio.google.com/api-keys" target="_blank">Google AI Studio</a>
+            </p>
+          </div>
 
-            <div class="goal-input">
-                <label for="videoLimit">Video Limit (minutes per day)</label>
-                <input type="number" id="videoLimit" min="0" placeholder="e.g., 90">
-            </div>
+          <button type="submit" class="save-button">Save Settings</button>
+          <div id="statusMessage" class="status-message"></div>
+        </form>
+      </div>
+    </main>
+  </div>
 
-            <div class="goal-input">
-                <label for="workMinimum">Productivity Minimum (minutes per day)</label>
-                <input type="number" id="workMinimum" min="0" placeholder="e.g., 120">
-            </div>
-
-            <h2 style="margin-top: 30px;">🔑 Gemini API Key</h2>
-            <p>Enter your Gemini API key to enable AI-powered summaries and insights.</p>
-            
-            <div class="goal-input">
-                <label for="apiKey">Gemini API Key</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="password" id="apiKey" placeholder="Enter your Gemini API key" style="flex-grow: 1;">
-                    <button id="toggleApiKey" style="white-space: nowrap; padding: 0 15px; background: #e2e8f0; border: 1px solid #cbd5e0; border-radius: 8px; cursor: pointer;">Show</button>
-                </div>
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">
-                    Get your API key from <a href="https://ai.google.dev/" target="_blank" style="color: var(--accent-color);">Google AI Studio</a>
-                </p>
-            </div>
-
-            <button id="saveButton" class="save-button">Save Settings</button>
-            <div id="statusMessage" class="status-message"></div>
-        </div>
-    </div>
-    <script type="module" src="options.js"></script>
-             
-                
+  <script src="popup/options.js" type="module"></script>
 </body>
 </html>
