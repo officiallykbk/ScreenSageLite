@@ -39,7 +39,10 @@ export const CONFIG = {
         AI_CHECK_TIMEOUT: 2000,      // 2 seconds timeout for AI availability check
         PROMPT: `You are ScreenSage, a helpful AI assistant.
                  Summarize the following browsing activity in a concise,
-                 insightful way. Highlight key topics and important information.`
+                 insightful way. Highlight key topics and important information.`,
+        MAX_SESSION_MS: 12 * 60 * 60 * 1000, // 12 hours
+        IDLE_DETECTION_SECONDS: 60,
+        COMMIT_INTERVAL_MINUTES: 5
     },
 
     // Storage Keys

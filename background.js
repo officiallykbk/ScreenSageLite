@@ -7,15 +7,14 @@
  * @version 2.2 - Restored Tracking Logic & Standardized AI
  */
 
+import { CONFIG } from './config.js';
+
 // --- GLOBAL STATE ---
 let currentSession = null;
 let usageCache = {};
 
 // --- CONSTANTS ---
 const DEBUG = true;
-const MAX_SESSION_MS = 12 * 60 * 60 * 1000;
-const IDLE_DETECTION_SECONDS = 60;
-const COMMIT_INTERVAL_MINUTES = 5;
 
 function log(...args) {
   if (DEBUG) console.log(`[${new Date().toLocaleTimeString()}] ScreenSage:`, ...args);
@@ -71,7 +70,7 @@ async function endSession() {
     // Log the raw ending details
     log(`END_SESSION: Ending session for domain: ${sessionToEnd.domain}, Tab ID: ${sessionToEnd.tabId}`);
 
-    if (duration > 1500 && duration < MAX_SESSION_MS) {
+    if (duration > 1500 && duration < CONFIG.BEHAVIOR.MAX_SESSION_MS) {
         const previousTime = usageCache[sessionToEnd.domain] || 0;
         usageCache[sessionToEnd.domain] = previousTime + duration;
         log(`END_SESSION: ✅ Committed. Domain: ${sessionToEnd.domain}, Duration: ${(duration/1000).toFixed(1)}s, New Total: ${(usageCache[sessionToEnd.domain]/60000).toFixed(1)}m`);
@@ -151,13 +150,13 @@ chrome.runtime.onInstalled.addListener(async () => {
     chrome.contextMenus.create({ id: "proofreadText", title: "Polish with ScreenSage", contexts: ["selection"] });
     chrome.contextMenus.create({ id: "rewriteText", title: "Rewrite with ScreenSage", contexts: ["selection"] });
   });
-  chrome.idle.setDetectionInterval(IDLE_DETECTION_SECONDS);
-  chrome.alarms.create('commit-cache', { periodInMinutes: COMMIT_INTERVAL_MINUTES });
+  chrome.idle.setDetectionInterval(CONFIG.BEHAVIOR.IDLE_DETECTION_SECONDS);
+  chrome.alarms.create('commit-cache', { periodInMinutes: CONFIG.BEHAVIOR.COMMIT_INTERVAL_MINUTES });
 });
 
 chrome.runtime.onStartup.addListener(() => {
   loadUsageCache();
-  chrome.alarms.create('commit-cache', { periodInMinutes: COMMIT_INTERVAL_MINUTES });
+  chrome.alarms.create('commit-cache', { periodInMinutes: CONFIG.BEHAVIOR.COMMIT_INTERVAL_MINUTES });
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
