@@ -1,147 +1,61 @@
 # 🦉 ScreenSage Lite
 
-A privacy-first Chrome extension that tracks your browsing habits and provides AI-powered insights to help you build better digital habits.
+A privacy-first Chrome extension that helps you understand your browsing habits with the power of on-device AI.
 
 ## ✨ Features
 
+### 📊 **Daily Browsing Summary**
+- Automatically tracks the time you spend on different websites.
+- Generates a concise, AI-powered summary of your day's browsing activity.
+- Provides a visual pie chart to see where your time goes.
+
+### ✍️ **AI-Powered Writing Assistant**
+- **Proofread:** Right-click on any selected text and choose "Polish with ScreenSage" to fix grammar and spelling errors instantly.
+- **Rewrite:** Select text and choose "Rewrite with ScreenSage" to get a clearer, more concise version.
+- All powered by Chrome's built-in, on-device AI for maximum privacy.
+
 ### 🎯 **Goal-Based Tracking**
-- Set personalized daily goals (social media limits, work minimums)
-- Get AI feedback comparing your actual usage against your goals
-- Track productivity streaks to stay motivated
+- Set daily time limits for categories like "Social Media" and "Video".
+- Set minimum daily goals for productive categories like "Work".
+- The extension will track your progress and show you how you're doing.
 
-### 📊 **Smart Analytics**
-- Visual pie chart showing time spent per website
-- AI-powered daily summaries with personalized tips
-- Export your data anytime (JSON format)
+### 🔒 **Privacy-First Design**
+- All your browsing data is stored locally on your device.
+- AI processing happens on-device, so your data never leaves your computer.
+- No sign-up or personal information required.
 
-### 🔒 **Privacy-First**
-- All data stays on your device (no cloud sync)
-- No tracking of personal information
-- Local storage only - you're in complete control
+## 🚀 Setup & Install
 
-### ✍️ **Writing Assistant**
-- Right-click any selected text → "Polish with ScreenSage"
-- Uses Chrome's built-in AI to improve your writing
-- Perfect for emails, documents, and more
+To get started with ScreenSage Lite, follow these steps:
 
-## 🚀 Quick Start
+1.  **Download the Extension**
+    *   Clone this repository to your local machine using `git clone` or download it as a ZIP file.
 
-1. **Install the Extension**
-   - Download or clone this repository
-   - Open Chrome → Extensions → Developer mode
-   - Click "Load unpacked" → Select the ScreenSageLite folder
+2.  **Enable Chrome's Built-in AI**
+    *   You need **Google Chrome Canary (version 127 or newer)**.
+    *   Open Chrome Canary and navigate to `chrome://flags`.
+    *   Enable the following three flags:
+        *   `#prompt-api-for-gemini-nano`
+        *   `#summarizer-api-for-gemini-nano`
+        *   `#proofreader-api-for-gemini-nano`
+    *   Relaunch your browser after enabling the flags.
 
-2. **Set Your Goals**
-   - Click the extension icon → ⚙️ Settings
-   - Set your daily social media limit and work minimums
-   - Save your preferences
+3.  **Install the Extension**
+    *   Navigate to `chrome://extensions`.
+    *   Enable **"Developer mode"** using the toggle in the top-right corner.
+    *   Click the **"Load unpacked"** button.
+    *   Select the folder where you cloned or unzipped the repository.
 
-3. **Start Browsing**
-   - Visit websites normally - ScreenSage tracks automatically
-   - Click "✨ Get Daily Digest" for AI insights
-   - Use right-click → "Polish with ScreenSage" on any text
-
-## 🎯 How It Works
-
-### Phase 1: Basic Tracking
-- Tracks time spent on each website
-- Filters out Chrome internal pages and extensions
-- Stores data locally with debounced saves
-- Shows basic usage statistics
-
-### Phase 2: AI-Powered Insights
-- Personalized goal-based feedback
-- AI analysis comparing usage against your goals
-- Productivity streak tracking
-- Structured "Wins" and "Areas to Improve" reports
-
-## 🛠️ Technical Details
-
-### Architecture
-- **Background Script**: Tracks tab usage, manages storage
-- **Popup Interface**: Shows analytics and AI insights
-- **Settings Page**: Goal management and data controls
-- **Context Menu**: Text polishing functionality
-
-### Storage
-- `usage`: Domain → time spent mapping
-- `usageMeta`: Last seen timestamps for cleanup
-- `userGoals`: Personal goal settings
-- `streakData`: Productivity streak tracking
-
-### AI Integration
-- Uses Chrome's built-in AI APIs (Summarizer, Prompt)
-- Fallback to manual analysis if AI unavailable
-- Goal-aware prompting for personalized insights
-
-## 📁 File Structure
-
-```
-ScreenSageLite/
-├── manifest.json          # Extension configuration
-├── background.js          # Tab tracking & storage
-├── popup.html            # Main interface
-├── popup.js              # Analytics & AI integration
-├── options.html          # Settings page
-├── options.js            # Goal management
-├── style.css             # Styling
-├── chart.umd.min.js      # Chart.js library
-└── README.md             # This file
-```
-
-## 🔧 Development
-
-### Prerequisites
-- Chrome browser with AI APIs enabled
-- Basic knowledge of Chrome extension development
-
-### Local Development
-1. Clone the repository
-2. Open Chrome → Extensions → Developer mode
-3. Click "Load unpacked" → Select project folder
-4. Make changes and reload the extension
-
-### Testing
-- Visit various websites to generate tracking data
-- Check browser console for debug logs
-- Test AI features (requires Chrome with AI APIs)
-- Verify goal-based feedback works correctly
-
-## 🎯 Demo Flow (3 minutes)
-
-1. **Setup** (30s)
-   - Install extension
-   - Set goals in settings (e.g., 30 min social, 60 min work)
-
-2. **Browsing** (60s)
-   - Visit a few websites
-   - Switch between tabs
-   - Use right-click text polishing
-
-3. **Insights** (90s)
-   - Click "Get Daily Digest"
-   - See pie chart and AI analysis
-   - Check goal progress and streak
+4.  **(Optional) Add Your Gemini API Key**
+    *   If you want to use the cloud-based AI as a fallback, you'll need a Gemini API key.
+    *   Click the ScreenSage Lite extension icon, then click the settings gear (⚙️).
+    *   Get your key from [Google AI Studio](https://aistudio.google.com/api-keys).
+    *   Paste your key into the "Gemini API Key" field and click "Save Settings".
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+Contributions are welcome! Please feel free to fork the repository, make your changes, and submit a pull request.
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
-
-## 🆘 Support
-
-- Check the browser console for debug information
-- Ensure Chrome has AI APIs enabled
-- Verify extension permissions are granted
-- Report issues on GitHub
-
----
-
-**Built with ❤️ for better digital habits**
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

@@ -14,7 +14,7 @@ let currentSession = null;
 let usageCache = {};
 
 // --- CONSTANTS ---
-const DEBUG = true;
+const DEBUG = false;
 
 function log(...args) {
   if (DEBUG) console.log(`[${new Date().toLocaleTimeString()}] ScreenSage:`, ...args);
@@ -37,7 +37,9 @@ function getDomain(url) {
   } catch (e) { return null; }
 }
 
-// --- SESSION & DATA MANAGEMENT ---
+/**
+ * @description Loads the usage data from local storage into the in-memory cache.
+ */
 async function loadUsageCache() {
     try {
         const { usage = {} } = await chrome.storage.local.get('usage');
@@ -48,6 +50,9 @@ async function loadUsageCache() {
     }
 }
 
+/**
+ * @description Saves the in-memory usage cache to local storage.
+ */
 async function commitUsageCache() {
     if (Object.keys(usageCache).length === 0) return;
     try {
@@ -58,6 +63,9 @@ async function commitUsageCache() {
     }
 }
 
+/**
+ * @description Ends the current browsing session and commits the time spent to the usage cache.
+ */
 async function endSession() {
     if (!currentSession) {
         log('END_SESSION: No active session to end.');
@@ -79,6 +87,10 @@ async function endSession() {
     }
 }
 
+/**
+ * @description Starts a new browsing session for the given tab.
+ * @param {chrome.tabs.Tab} tab - The tab to start a session for.
+ */
 async function startSession(tab) {
     await endSession(); // Ensure any previous session is ended before starting a new one.
 
@@ -95,7 +107,10 @@ async function startSession(tab) {
     }
 }
 
-// --- CHROME EVENT LISTENERS ---
+/**
+ * @description Gets the currently active tab.
+ * @returns {Promise<chrome.tabs.Tab|null>} - The active tab, or null if none is found.
+ */
 async function getCurrentTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
