@@ -6,12 +6,12 @@ Your personal, mindful mentor for digital wellness 💻✨
 ---
 
 ## 🎥 Demo Video
-👉 [Watch on YouTube](https://youtu.be/your-demo-link) *(2 min overview)*
+👉 [Watch on YouTube](https://youtube.com/shorts/iKPWbOXwrgc)
 
 ## 🖼️ Screenshots
 | Dashboard | AI Summary | Proofreader |
 |------------|-------------|--------------|
-| ![Dashboard](demo/dashboard.png) | ![Summary](demo/summary.png) | ![Proofreader](demo/proofreader.png) |
+| ![Dashboard](demo/dashboard.png) | ![Proofreader](demo/proofreader.png) |
 
 ---
 
