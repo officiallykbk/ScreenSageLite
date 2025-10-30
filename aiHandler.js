@@ -9,48 +9,75 @@ const DEFAULT_RESPONSE = {
 /* ------------------------------
  🧠 1. Check if built-in Chrome AI (Gemini Nano) is available
 ------------------------------ */
-async function hasBuiltInAI() {
-    if (typeof window.ai === 'undefined') {
-        return 'unavailable';
-    }
-    try {
-        const availability = await window.ai.languageModel.availability();
-        return availability;
-    } catch (error) {
-        console.warn("Built-in AI check failed:", error.message);
-        return 'unavailable';
-    }
-}
+// NOTE: Built-in `window.ai` is only present in page contexts (tabs).
+// We'll attempt to run the summarizer in the active tab via chrome.scripting.executeScript
+// instead of checking window.ai from the extension/popup context where it will be undefined.
 
 /* ------------------------------
  ⚙️ 2. Built-in AI Path (Gemini Nano)
 ------------------------------ */
 async function useBuiltInAI(domains) {
-  try {
-    const summarizer = await safeAI(() => window.ai.summarizer.create());
-    const summary = await safeAI(() => summarizer.summarize({ text: domains }));
+  // Query the active tab and execute a script there to access window.ai
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) throw new Error('No active tab found to run built-in AI');
 
-    let tip = DEFAULT_RESPONSE.tip;
-    try {
-      const model = await safeAI(() => window.ai.languageModel.create());
-      tip = await safeAI(() => 
-        model.prompt(
-          `Based on this browsing summary: ${domains}.
-          Give a friendly productivity tip in one short, casual sentence.`
-        )
-      ) || tip;
-    } catch (error) {
-      console.warn("Failed to get AI tip, using default:", error);
-    }
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: async (text) => {
+      // This function runs inside the page (tab) where window.ai may exist
+      if (typeof window.ai === 'undefined') return { error: 'unavailable' };
 
-    return {
-      content: summary?.summary || DEFAULT_RESPONSE.content,
-      tip: tip
-    };
-  } catch (error) {
-    console.error("Built-in AI failed, falling back to Gemini:", error);
-    throw error; // Will be caught by generateReflection
+      try {
+        // Prefer summarizer if available
+        const summAvail = typeof window.ai.summarizer?.availability === 'function'
+          ? await window.ai.summarizer.availability()
+          : 'unavailable';
+
+        if (summAvail === 'after-download') {
+          return { status: 'after-download' };
+        }
+
+        if (summAvail !== 'readily') {
+          return { error: `summarizer:${summAvail}` };
+        }
+
+        const summarizer = await window.ai.summarizer.create();
+        const sumRes = await summarizer.summarize({ text });
+
+        // Try to get a short tip via languageModel if available
+        let tip = null;
+        try {
+          const lmAvail = typeof window.ai.languageModel?.availability === 'function'
+            ? await window.ai.languageModel.availability()
+            : 'unavailable';
+          if (lmAvail === 'readily') {
+            const model = await window.ai.languageModel.create();
+            tip = await model.prompt(`Based on this browsing summary: ${text} Give a friendly productivity tip in one short sentence.`);
+          }
+        } catch (e) {
+          // ignore; tip is optional
+        }
+
+        return { summary: sumRes?.summary || null, tip };
+      } catch (err) {
+        return { error: err?.message || String(err) };
+      }
+    },
+    args: [domains]
+  });
+
+  if (!result) throw new Error('No result from page context while attempting built-in AI');
+  if (result.status === 'after-download') {
+    return { content: "⌛ Gemini Nano is downloading. This may take a moment. Please try again shortly!", tip: DEFAULT_RESPONSE.tip };
   }
+  if (result.error) {
+    throw new Error(result.error);
+  }
+
+  return {
+    content: result.summary || DEFAULT_RESPONSE.content,
+    tip: result.tip || DEFAULT_RESPONSE.tip
+  };
 }
 
 /* ------------------------------
@@ -108,7 +135,7 @@ Tip: ...
   const tip = tipMatch ? tipMatch[1].trim() : "";
 
   return {
-    summary: summary || "Could not generate a summary.",
+    content: summary || "Could not generate a summary.",
     tip: tip || "Take regular breaks to stay productive!",
   };
 }
@@ -117,32 +144,31 @@ Tip: ...
  🚀 4. Smart Dispatcher
 ------------------------------ */
 export async function generateReflection(domains) {
-    const availability = await hasBuiltInAI();
-
-    if (availability === 'readily') {
-        console.log("🧠 Using Gemini Nano (local)");
-        return await useBuiltInAI(domains);
+  // Try built-in AI (executed inside the active tab) first
+  try {
+    const built = await useBuiltInAI(domains);
+    // If built-in returns a message about downloading, it already returns a content string
+    if (built && built.content) {
+      console.log("🧠 Using built-in Gemini Nano (local)");
+      return built;
     }
+  } catch (err) {
+    console.warn('Built-in AI attempt failed, falling back to cloud:', err.message || err);
+    // Continue to cloud fallback
+  }
 
-    if (availability === 'after-download') {
-        return {
-            content: "⌛ Gemini Nano is downloading. This may take a moment. Please try again shortly!",
-            tip: "In the meantime, take a short break to rest your eyes."
-        };
+  console.log("☁️ Using Gemini Flash 2.5 (cloud fallback)");
+  try {
+    return await useGeminiFallback(domains);
+  } catch (error) {
+    if (error.message.includes("No Gemini API key")) {
+      return {
+        content: "The built-in AI is not available, and no cloud API key has been set.",
+        tip: "Please add your Gemini API key in the settings to enable cloud-based summaries."
+      };
     }
-
-    console.log("☁️ Using Gemini Flash 2.5 (cloud fallback)");
-    try {
-        return await useGeminiFallback(domains);
-    } catch (error) {
-        if (error.message.includes("No Gemini API key")) {
-            return {
-                content: "The built-in AI is not available, and no cloud API key has been set.",
-                tip: "Please add your Gemini API key in the settings to enable cloud-based summaries."
-            };
-        }
-        throw error;
-    }
+    throw error;
+  }
 }
 
 /* ------------------------------

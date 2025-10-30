@@ -30,38 +30,49 @@ export async function logAiAvailability() {
 
 
 export async function summarizePage() {
-    // Get page content first - we'll need this regardless of which AI we use
+    // Attempt to run summarizer in the active tab (page context) first
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error('No active tab found');
 
-    const [{ result }] = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => document.body.innerText.slice(0, 20000)
-    });
+    try {
+        const [{ result }] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: async () => {
+                const text = document.body.innerText.slice(0, 20000);
+                if (typeof window.ai === 'undefined') return { error: 'unavailable' };
+                try {
+                    const sAvail = typeof window.ai.summarizer?.availability === 'function'
+                        ? await window.ai.summarizer.availability()
+                        : 'unavailable';
+                    if (sAvail === 'after-download') return { status: 'after-download' };
+                    if (sAvail !== 'readily') return { error: `summarizer:${sAvail}` };
 
-    if (!result) {
-        throw new Error('Could not retrieve content from the page.');
-    }
+                    const summ = await window.ai.summarizer.create();
+                    const out = await summ.summarize({ text });
+                    return { summary: out?.summary || null };
+                } catch (e) {
+                    return { error: e?.message || String(e) };
+                }
+            }
+        });
 
-    // Try built-in AI first
-    if (typeof window.ai !== 'undefined') {
-        try {
-            const availability = await window.ai.summarizer.availability();
-            if (availability === 'readily') {
-                const summarizer = await window.ai.summarizer.create();
-                const summaryResult = await summarizer.summarize({ text: result });
-                return summaryResult.summary;
-            } else if (availability === 'after-download') {
+        if (result) {
+            if (result.status === 'after-download') {
                 throw new Error('Summarizer is downloading. Please try again in a moment.');
             }
-            // If not readily/downloading, fall through to cloud fallback
-        } catch (err) {
-            console.log("Built-in summarizer not available, trying cloud fallback...");
-            // Fall through to cloud fallback
+            if (result.error) {
+                console.log('Built-in summarizer not available on page:', result.error);
+                // fall through to cloud
+            } else if (result.summary) {
+                return result.summary;
+            }
         }
+    } catch (err) {
+        console.warn('Error while attempting built-in summarizer in page context:', err.message || err);
+        // fall through to cloud fallback
     }
 
-    // Cloud Fallback using Gemini API
+    // Cloud fallback
     console.log("☁️ Using Gemini Flash 2.5 (cloud fallback)");
     const apiKey = await getApiKey();
     if (!apiKey) {
@@ -69,7 +80,11 @@ export async function summarizePage() {
     }
 
     const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
-    const prompt = `Summarize this text in 2-3 concise sentences, focusing on the main points:\n\n${result}`;
+    const pageText = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => document.body.innerText.slice(0, 20000) })
+        .then(res => res[0]?.result || '')
+        .catch(() => '');
+
+    const prompt = `Summarize this text in 2-3 concise sentences, focusing on the main points:\n\n${pageText}`;
 
     const response = await fetch(url, {
         method: "POST",
@@ -91,7 +106,7 @@ export async function summarizePage() {
 
     const data = await response.json();
     const summary = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    
+
     if (!summary) {
         console.warn("Cloud API failed to generate summary, falling back to quote");
         const fallback = await fetchFallbackQuote();
@@ -115,26 +130,38 @@ async function fetchFallbackQuote() {
 }
 
 export async function generateNudges(usageData) {
-    // Try built-in AI first
-    if (typeof window.ai !== 'undefined') {
-        try {
-            const availability = await window.ai.languageModel.availability();
-            if (availability === 'readily') {
-                const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
-                const topDomain = Object.keys(usageData).length > 0 ? Object.entries(usageData).sort((a, b) => b[1] - a[1])[0][0] : 'none';
+    // Try to run in page context (languageModel) first
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+            const totalTime = Object.values(usageData).reduce((sum, ms) => sum + ms, 0);
+            const topDomain = Object.keys(usageData).length > 0 ? Object.entries(usageData).sort((a, b) => b[1] - a[1])[0][0] : 'none';
+            const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms. Keep the response under 280 characters.`;
 
-                const prompt = `Based on my browsing data (Total time: ${(totalTime / 60000).toFixed(0)} mins, Top site: ${topDomain}), provide 1-2 friendly, actionable nudges for better digital wellness. Frame them as positive suggestions, not criticisms. Keep the response under 280 characters.`;
+            const [{ result }] = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: async (p) => {
+                    if (typeof window.ai === 'undefined') return { error: 'unavailable' };
+                    try {
+                        const avail = typeof window.ai.languageModel?.availability === 'function'
+                            ? await window.ai.languageModel.availability()
+                            : 'unavailable';
+                        if (avail !== 'readily') return { error: `languageModel:${avail}` };
+                        const model = await window.ai.languageModel.create();
+                        const out = await model.prompt(p);
+                        return { text: out };
+                    } catch (e) { return { error: e?.message || String(e) } }
+                },
+                args: [prompt]
+            });
 
-                const model = await window.ai.languageModel.create();
-                const fullResponse = await model.prompt(prompt);
-                return fullResponse;
-            }
-        } catch (err) {
-            console.warn("Built-in AI nudges failed, trying cloud fallback:", err);
+            if (result && result.text) return result.text;
         }
+    } catch (err) {
+        console.warn('Built-in nudges failed in page context:', err);
     }
 
-    // Try cloud API fallback
+    // Cloud fallback
     try {
         const apiKey = await getApiKey();
         if (!apiKey) {
@@ -212,22 +239,35 @@ export async function exportData() {
 
 // --- NEW --- Function for the in-popup proofreader
 export async function proofreadText(text) {
-    // Try built-in AI first
-    if (typeof window.ai !== 'undefined') {
-        try {
-            const availability = await window.ai.languageModel.availability();
-            if (availability === 'readily') {
-                const model = await window.ai.languageModel.create();
-                const prompt = `Proofread and correct the following text for grammar, spelling, and punctuation errors. Only return the corrected text, without any introductory phrases:\n\n"${text}"`;
-                const resultText = await model.prompt(prompt);
-                return resultText;
-            }
-        } catch (err) {
-            console.warn("Built-in AI proofreading failed, trying cloud fallback:", err);
+    // Try running proofread in page context (languageModel) first
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+            const prompt = `Proofread and correct the following text for grammar, spelling, and punctuation errors. Only return the corrected text, without any introductory phrases:\n\n"${text}"`;
+            const [{ result }] = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: async (p) => {
+                    if (typeof window.ai === 'undefined') return { error: 'unavailable' };
+                    try {
+                        const avail = typeof window.ai.languageModel?.availability === 'function'
+                            ? await window.ai.languageModel.availability()
+                            : 'unavailable';
+                        if (avail !== 'readily') return { error: `languageModel:${avail}` };
+                        const model = await window.ai.languageModel.create();
+                        const out = await model.prompt(p);
+                        return { text: out };
+                    } catch (e) { return { error: e?.message || String(e) } }
+                },
+                args: [prompt]
+            });
+
+            if (result && result.text) return result.text;
         }
+    } catch (err) {
+        console.warn('Built-in proofreading failed in page context:', err);
     }
 
-    // Try cloud API fallback
+    // Cloud fallback
     try {
         const apiKey = await getApiKey();
         if (!apiKey) {

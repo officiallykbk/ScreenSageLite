@@ -37,31 +37,28 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0 16px;
+  padding: 12px 20px 16px;
   margin-bottom: 8px;
   border-bottom: 1px solid var(--card-border);
   position: relative;
 }
 
-.header h1 {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0;
-  flex-grow: 1;
-  text-align: center;
-  color: var(--text-primary);
-  letter-spacing: -0.5px;
-  text-transform: capitalize;
-  padding: 0 44px;
-  line-height: 1.2;
+.header-title {
+    flex-grow: 1;
+    margin-left: 10px;
 }
 
+.header-title h1 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+}
 
 
 /* Theme Toggle */
 .theme-toggle {
   position: absolute;
-  right: 0;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
   border-radius: 50%;
@@ -88,23 +85,25 @@ body, html {
 /* Header */
 
  .header .back-link { 
-    position: absolute; 
-    top: 20px; 
-    left: 20px; 
-    font-size: 1.2rem; 
-    color: var(--text-color); 
-    text-decoration: none; 
-    transition: transform 0.3s ease;
+   position: absolute; 
+   top: 50%; 
+   left: 20px; 
+   transform: translateY(-50%);
+   font-size: 1.1rem; 
+   color: var(--text-color); 
+   text-decoration: none; 
+   transition: transform 0.3s ease;
  } 
 
  .header .back-link:hover { 
-    transform: translateX(-5px); 
+   transform: translateX(-5px) translateY(-50%); 
 }
 
-header h1 { 
-    text-align: center; 
-    font-size: 2rem;
-    width: 100%; /* Ensure it takes full width to center */
+/* Scoped header title styling to avoid global header h1 selector */
+.header h1 { 
+  text-align: center; 
+  font-size: 1.6rem;
+  width: 100%; /* Ensure it takes full width to center */
  }
 
 /* Layout */

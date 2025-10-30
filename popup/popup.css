@@ -91,6 +91,25 @@ body {
     filter: drop-shadow(0 0 3px rgba(45, 55, 72, 0.3));
 }
 
+/* Make the popup theme button match the options/settings size for symmetry */
+.theme-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    padding: 0; /* override .icon-btn padding */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.theme-toggle .theme-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
 /* Main Content */
 .main-content {
     flex-grow: 1;

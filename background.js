@@ -71,7 +71,8 @@ async function endSession() {
     // Log the raw ending details
     log(`END_SESSION: Ending session for domain: ${sessionToEnd.domain}, Tab ID: ${sessionToEnd.tabId}`);
 
-    if (duration > 1500 && duration < MAX_SESSION_MS) {
+    // Accept shorter visits (>= 500ms) to improve accuracy for quick interactions
+    if (duration >= 500 && duration < MAX_SESSION_MS) {
         const previousTime = usageCache[sessionToEnd.domain] || 0;
         usageCache[sessionToEnd.domain] = previousTime + duration;
         log(`END_SESSION: ✅ Committed. Domain: ${sessionToEnd.domain}, Duration: ${(duration/1000).toFixed(1)}s, New Total: ${(usageCache[sessionToEnd.domain]/60000).toFixed(1)}m`);
@@ -81,19 +82,28 @@ async function endSession() {
 }
 
 async function startSession(tab) {
-    await endSession(); // Ensure any previous session is ended before starting a new one.
-
     const domain = getDomain(tab?.url);
-    if (domain) {
-        log(`START_SESSION: 🚀 Starting new session for domain: ${domain} on tab ${tab.id}`);
-        currentSession = {
-            domain: domain,
-            startTime: Date.now(),
-            tabId: tab.id,
-        };
-    } else {
+    if (!domain) {
         log(`START_SESSION: 🚫 Cannot start session for untrackable URL: ${tab?.url}`);
+        return;
     }
+
+    // If we're already tracking this exact tab/domain, do nothing to avoid restarting and losing time
+    if (currentSession && currentSession.tabId === tab.id && currentSession.domain === domain) {
+        // Already tracking this tab — keep the existing session
+        log(`START_SESSION: ℹ️ Already tracking domain: ${domain} on tab ${tab.id}`);
+        return;
+    }
+
+    // End any previous session before starting a new one
+    await endSession();
+
+    log(`START_SESSION: 🚀 Starting new session for domain: ${domain} on tab ${tab.id}`);
+    currentSession = {
+        domain: domain,
+        startTime: Date.now(),
+        tabId: tab.id,
+    };
 }
 
 // --- CHROME EVENT LISTENERS ---
@@ -114,22 +124,36 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (tab.active && changeInfo.url && currentSession?.tabId === tabId) {
-    log(`EVENT: tabs.onUpdated - URL changed for active tab ${tabId}: ${changeInfo.url}`);
-    await startSession(tab);
-  }
+    // When the active tab's URL changes, restart tracking for that tab.
+    if (tab.active && changeInfo.url) {
+        log(`EVENT: tabs.onUpdated - URL changed for active tab ${tabId}: ${changeInfo.url}`);
+        await startSession(tab);
+    }
 });
 
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   log(`EVENT: windows.onFocusChanged - Window focus changed to ID: ${windowId}`);
-  if (windowId === chrome.windows.WINDOW_ID_NONE) {
-    log('Window lost focus. Ending session and committing cache.');
-    await endSession();
-    await commitUsageCache();
-  } else {
-    const tab = await getCurrentTab();
-    if (tab) await startSession(tab);
-  }
+    if (windowId === chrome.windows.WINDOW_ID_NONE) {
+        log('Window lost focus. Ending session and committing cache.');
+        await endSession();
+        await commitUsageCache();
+    } else {
+        try {
+            // Try to get the active tab for the focused window directly
+            const tabs = await chrome.tabs.query({ active: true, windowId });
+            const tab = tabs && tabs[0];
+            if (tab) {
+                await startSession(tab);
+                return;
+            }
+        } catch (e) {
+            log('Could not query tabs by windowId, falling back to getCurrentTab', e);
+        }
+
+        // Fallback: use the last focused window's active tab
+        const tab = await getCurrentTab();
+        if (tab) await startSession(tab);
+    }
 });
 
 chrome.idle.onStateChanged.addListener(async (newState) => {
@@ -193,17 +217,32 @@ async function processWithBuiltInAI(tab, prompt) {
                     }
                     
                     const model = await window.ai.languageModel.create();
-                    const response = await model.prompt(promptText);
-                    return { text: response };
+                        const response = await model.prompt(promptText);
+                        // return the raw response so the extension can normalize different result shapes
+                        return { raw: response };
                 } catch (err) {
-                    return { error: err.message };
+                        return { error: err.message };
                 }
             },
             args: [prompt]
         });
 
         if (aiResult.error) throw new Error(aiResult.error);
-        return { text: aiResult.text, isCloud: false };
+
+        // Normalize various possible response shapes from model.prompt
+        const raw = aiResult.raw;
+        let text = '';
+        if (!raw) text = '';
+        else if (typeof raw === 'string') text = raw;
+        else if (typeof raw === 'object') {
+            // Common shapes: { text: '...' } or { candidates: [...] } or nested content
+            if (typeof raw.text === 'string') text = raw.text;
+            else if (raw?.candidates?.[0]?.content?.parts?.[0]?.text) text = raw.candidates[0].content.parts[0].text;
+            else if (raw?.output?.[0]?.content?.[0]?.text) text = raw.output[0].content[0].text;
+            else text = JSON.stringify(raw);
+        }
+
+        return { text: text, isCloud: false };
     } catch (err) {
         throw err;
     }
