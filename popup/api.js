@@ -1,31 +1,64 @@
 
 import { getStoredData } from './data.js';
-import { getApiKey } from '../config.js';
+import { getApiKey, setApiKey } from '../config.js';
 
 // --- NEW --- Enhanced AI Availability Logging
 // This function is exported to be called from main.js when the popup loads.
 export async function logAiAvailability() {
     console.log("--- ScreenSage AI Diagnostic ---");
-    if (typeof window.ai === 'undefined') {
-        console.error("[AI-DIAG] ❌ `window.ai` object is not defined. The Built-in AI API is not available.");
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab?.id) {
+        console.error("[AI-DIAG] ❌ No active tab found to check for AI availability.");
+        console.log("--- End AI Diagnostic ---");
         return;
     }
-    console.log("[AI-DIAG] ✅ `window.ai` object is defined.");
 
-    try {
-        const lmAvailability = await window.ai.languageModel.availability();
-        console.log(`[AI-DIAG] 💬 Language Model availability: '${lmAvailability}'`);
-    } catch (e) {
-        console.error("[AI-DIAG] ❌ Error checking Language Model availability:", e.message);
+    // Skip known-ineligible pages where executeScript or window.ai won't work
+    const url = tab.url || "";
+    const ineligible = /^(chrome|edge|about|devtools|chrome-extension|chrome-untrusted):/i.test(url)
+        || /https?:\/\/chromewebstore\./i.test(url);
+    if (ineligible) {
+        console.info(`[AI-DIAG] ℹ️ Skipping AI check on ineligible page: ${url}`);
+        console.log("--- End AI Diagnostic ---");
+        return;
     }
 
     try {
-        const sAvailability = await window.ai.summarizer.availability();
-        console.log(`[AI-DIAG] ✍️ Summarizer availability: '${sAvailability}'`);
+        const [{ result }] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: async () => {
+                if (typeof window.ai === 'undefined') {
+                    return { defined: false };
+                }
+                const lmAvailability = await window.ai.languageModel.availability();
+                const sAvailability = await window.ai.summarizer.availability();
+                return {
+                    defined: true,
+                    lm: lmAvailability,
+                    s: sAvailability
+                };
+            }
+        });
+
+        if (!result) {
+            throw new Error("Script execution failed or returned no result.");
+        }
+
+        if (!result.defined) {
+            console.warn("[AI-DIAG] ⚠️ `window.ai` is undefined in the active tab. Ensure Chrome Canary flags are enabled and test on a regular http/https page.");
+        } else {
+            console.log("[AI-DIAG] ✅ `window.ai` object is defined in the active tab.");
+            console.log(`[AI-DIAG] 💬 Language Model availability: '${result.lm}'`);
+            console.log(`[AI-DIAG] ✍️ Summarizer availability: '${result.s}'`);
+        }
+
     } catch (e) {
-        console.error("[AI-DIAG] ❌ Error checking Summarizer availability:", e.message);
+        console.error(`[AI-DIAG] ❌ An error occurred while checking for AI availability in the tab:`, e.message);
+        console.info("[AI-DIAG] Note: This can happen on special pages like 'chrome://' pages or the store, where content scripts are not allowed to run.");
+    } finally {
+        console.log("--- End AI Diagnostic ---");
     }
-    console.log("--- End AI Diagnostic ---");
 }
 
 
@@ -205,13 +238,11 @@ export async function generateNudges(usageData) {
 // Data management functions remain unchanged
 export async function resetData() {
     try {
-        const allData = await chrome.storage.local.get(null);
-        // We preserve goals, theme, and streak data on reset.
-        const keysToKeep = ['userGoals', 'theme', 'streakData'];
-        const keysToRemove = Object.keys(allData).filter(key => !keysToKeep.includes(key));
-
-        if (keysToRemove.length > 0) {
-            await chrome.storage.local.remove(keysToRemove);
+        // Preserve only the Gemini API key and wipe everything else
+        const apiKey = await getApiKey();
+        await chrome.storage.local.clear();
+        if (apiKey) {
+            await setApiKey(apiKey);
         }
     } catch (error) {
         console.error("Error resetting data:", error);

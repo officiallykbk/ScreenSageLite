@@ -59,7 +59,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Check and render goals, with a celebratory confetti effect on success.
         const goalResults = await checkGoals();
         if (goalResults && goalResults.some(goal => goal.achieved)) {
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
         }
         renderGoals(goalResults);
 
@@ -86,9 +88,18 @@ async function handleProofread() {
     outputContainer.style.display = 'none';
 
     try {
-        // This function will be created in api.js next.
         const correctedText = await proofreadText(text);
-        outputContainer.textContent = correctedText;
+        const trimmedInput = text.trim();
+        const trimmedOutput = (correctedText || '').trim();
+
+        // Indicate whether proofreading actually changed anything
+        if (trimmedOutput.length === 0) {
+            outputContainer.textContent = 'No output produced.';
+        } else if (trimmedOutput === trimmedInput) {
+            outputContainer.textContent = `${correctedText}\n\n(No changes were needed.)`;
+        } else {
+            outputContainer.textContent = correctedText;
+        }
         outputContainer.style.display = 'block';
     } catch (error) {
         console.error('Proofread Error:', error);
@@ -178,11 +189,18 @@ function handleReset() {
                 renderChart([], []);
                 updateStreakDisplay({ current: 0, lastActive: null });
                 updateDigest({ isFallback: false, content: 'Your data has been successfully reset.' });
-                confetti({
-                    particleCount: 150,
-                    spread: 80,
-                    origin: { y: 0.6 }
-                });
+                // Also reset proofreader section
+                const inputArea = document.getElementById('proofread-input');
+                const outputContainer = document.getElementById('proofread-output');
+                if (inputArea) inputArea.value = '';
+                if (outputContainer) { outputContainer.textContent = ''; outputContainer.style.display = 'none'; }
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 150,
+                        spread: 80,
+                        origin: { y: 0.6 }
+                    });
+                }
             } catch (error) {
                 console.error('Reset Error:', error);
                 showError('Failed to reset data.');
